@@ -1,0 +1,29 @@
+								Project<Title>
+
+  **Description:
+	<There is overview place,the Project explain would on there.For quickly and simply to get understand what it is,you should shortly to descript this project.And don't adding features design verbose on there.People could get understand what it is on there.>
+
+Design reason:
+	<Why are you want to build this project?You should place the reason that why do it appear in the world.So you can interpret it on there.>
+
+Structure:
+	<Structure of this program or product or others.It could is Top-Down or Down-Top,or others.The clearly structure of it could helpmore while your design.>
+
+Logic order:
+	<Logic is the most importantest on project,because it would as leader on the project.All of proreduces are depent on logic.You should list logic order on there to help you design it.>
+
+Feature design:
+	<Modularity to interfaces could up the extendable attribute.Of course,it als helpful while you debuging.>
+
+Develop environment:
+	<Process is depent on OS.List your develop environment could help other user to rightly compile the program and use it.>
+
+Debug or Other:
+	TODO:
+	<Debug and TODO.All programs are not probably no bugs.And they are also have the space to optimize.>
+
+Complement:
+	<There could place some messages as additional.Addition could explain the project in the further gradation.>
+
+Version:
+	<Version of it>
