@@ -61,26 +61,31 @@ namespace codestream {
   }
 
   void Codestream::installProcedure(std::function<void *(void *)> &&f) {
-    local_unique_locker(_state_mutex);
-    local_unique_unlock();
-
-    lock_ip();
+    bool is_locked(false);
+  
+    if (!this->is_suspend()) {
+      lock_ip();
+      is_locked = true;
+    }
     _code_procedures.emplace_back(f);
 
     // If nothing was installed into procedures, INIT flag should be false.
     if (!_codestream_flag[INIT])
       _codestream_flag.set(INIT);
     _ip_end = _cp_end = _code_procedures.size();        // update pos records.
-
-    local_unique_lock();
-    _state = NOERROR;
-    unlock_ip();
+    
+    if (is_locked)
+      unlock_ip();
   }
 
   void Codestream::installProcedure(std::function<void *(void *)> &&f, aindex pos) {
-    local_unique_locker(_state_mutex);
-    local_unique_unlock();
-    lock_ip();
+    bool is_locked(false);
+
+    if (!this->is_suspend()) {
+      lock_ip();
+      is_locked = true;
+    }
+
     auto vector_it(_code_procedures.begin());
 
     vector_it += pos;
@@ -90,17 +95,26 @@ namespace codestream {
       _codestream_flag.set(INIT);
     _ip_end = _cp_end = _code_procedures.size();
 
-    local_unique_lock();
-    _state = NOERROR;
-    unlock_ip();
+
+    if (is_locked)
+      unlock_ip();
   }
 
   codestream_process_state Codestream::uninstallProcedure(aindex which) {
     local_unique_locker(_state_mutex);
+    local_unique_unlock();
+
+    bool is_locked(false);
+
+    if (!this->is_suspend()) {
+      lock_ip();
+      is_locked = true;
+    }
+
+    local_unique_lock();
     _state = NOERROR;
     local_unique_unlock();
-   
-    lock_ip();
+
     if (which < _cp_end)
       if (_code_procedures.at(which) == nullptr) {
 	local_unique_lock();
@@ -117,7 +131,8 @@ namespace codestream {
       local_unique_unlock();
     }
 
-    unlock_ip();
+    if (is_locked)
+      unlock_ip();
     return _state;
   }
 
@@ -188,7 +203,7 @@ namespace codestream {
     }
 
     local_unique_unlock();
-    if (this->is_processing()) {
+    if (this->is_processing()) {	// try to stop coding
       _codestream_flag.set(STOPPED);
       local_unique_lock();
       _state = SUSPEND;
@@ -196,7 +211,7 @@ namespace codestream {
     }
 
     local_unique_lock();
-    _state = SUSPEND_FAILED;
+    _state = SUSPEND_FAILED;	// locked failed,may be coding isnt working.
     unlock_ip();
     return _state;
   }
@@ -215,13 +230,12 @@ namespace codestream {
       return _state;
     }
 
-    if (this->is_suspend()) {
-      local_unique_lock();
-      if (_codestream_flag[STOPPED]) {
-	_codestream_flag.reset(STOPPED);
-	_state = IN_PROGRESSING;
-	unlock_ip();
-      }
+
+    local_unique_lock();
+    if (_codestream_flag[STOPPED]) {
+      _codestream_flag.reset(STOPPED);
+      _state = IN_PROGRESSING;
+      unlock_ip();
     }
     else {
       local_unique_lock();

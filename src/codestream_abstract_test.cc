@@ -16,16 +16,7 @@ int main(void) {
   codestream::codestream_process_state cps(codestream::INVAILD);
 
   cds.installProcedure(std::move(a));
-  if (!cds.is_execsuccess()) {
-    std::cerr<<"Install failed"<<std::endl;
-    return 1;
-  }
-
   cds.installProcedure(std::move(b));
-  if (!cds.is_execsuccess()) {
-    std::cerr<<"Install failed"<<std::endl;
-    return 1;
-  }
 
   std::thread t1(thread_func);
 
@@ -40,6 +31,7 @@ int main(void) {
   else
     std::cerr<<"suspend unactive"<<std::endl;
   }
+  cds.uninstallProcedure(2 - 1);
   
   sleep(3);
   cds.restartCode();
