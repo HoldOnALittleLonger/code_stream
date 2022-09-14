@@ -1,7 +1,7 @@
 								Project<code_stream>
 
 Description:
-	codestream is a simple tool to code data from stream.It supports the options -e (encode) -d (decode) -h (get help messages).
+	codestream is a simple tool to code data from stream.It supports the options -k (key) -e (encode) -d (decode) -h (get help messages).
 	The general usage is like to the example :
 	    e.g.
 		prompt> cat <file> | codestream
@@ -17,7 +17,6 @@ Structure:
 				    	  - Codestream' main procedure would use these procedure to operates data by an order was assigned.
 	Codestream::_cp_end		  - Index of end point for _code_procedures.
 
-	Codestream::_procedure_order	  - Set operations order for procedures in _code_procedures.
 	Codestream::_codestream_flag	  - std::bitset object.It has three bit [INIT, OP_ORDER, STOPPED]
 
 	Codestream::_ip		     	  - Record next position of procedures chain.
@@ -26,21 +25,41 @@ Structure:
 	Codestream::_ip_end	     	  - End point of procedures chain.
 
 	Codestream::_last_op_ret     	  - Save last operation return.
-
-/*	Codestream::_exchange_io_arg	  - A trigger for notify Codestream do exchange between the two buffers in op_arg_ret.
-					  - Codestream also would exchange size indicator. (default 'on')
-*/
-
-	Codestream::_last_install	  - Index record for last install.
+	
+	Codestream::_state		  - Codestream status.
+	Codestream::_state_mutex	  - Saver of _state.
 
 	Codestream::startCode()	     	  - Start coding.
 	Codestream::stopCode()	     	  - Stop coding.
 	Codestream::restartCode()    	  - Restart coding from breakpoint.
 	Codestream::installProcedure()    - Install a procedure into _code_procedures.
+					  - /* this function has overload version for install at an assigned position */
+
 	Codestream::uninstallProcedure()  - Uninstall a procedure from _code_procedures.
 	Codestream::getProgress()	  - Return _ip,require _ip_mutext.
 	Codestream::getLastResult()	  - Return _last_op_ret,require _ip_mutex.
 	Codestream::getOpChainSize() 	  - Return _cp_end.
+	Codestream::processStateExplain() - Return a C++ string to explain what happen now.
+	Codestream::triggerOpOrder()	  - A trigger to change _ip increase direction.increase
+
+
+	enum {
+	     INIT = 0,
+	     OP_ORDER,
+	     STOPPED,
+	     CODESTREAM_FLAG_TOTAL
+	};
+
+	enum codestream_process_state {
+	     INVALID,
+	     NOERROR,
+	     NOINIT,
+	     IN_PROGRESSING,
+	     SHUTDOWN,
+	     UNINSTALL_FAILED,
+	     SUSPEND,
+	     NOT_SUSPEND
+	};
 
 	struct op_arg_ret {
 	       void 	  *b1;		/* b1 should point to a buffer which would contains src data */
@@ -62,6 +81,9 @@ Logic order:
 	exit.
 
 Feature design:
+	-k <num>
+		set key for coding.
+
 	-e
 		receive data from input stream and coding,output result to output stream.
 	
