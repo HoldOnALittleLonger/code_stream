@@ -26,7 +26,9 @@ namespace codestream {
     IN_PROGRESSING,
     SHUTDOWN,
     UNINSTALL_FAILED,
+    UNINSTALL_EXCEED,
     SUSPEND,
+    SUSPEND_FAILED,
     NOT_SUSPEND
   };
 
@@ -48,7 +50,6 @@ namespace codestream {
 
     short _ip;
     std::mutex _ip_mutex;
-    std::unique_lock<std::mutex> _ip_mutex_unique;
     aindex _ip_start;
     aindex _ip_end;
 
@@ -56,6 +57,12 @@ namespace codestream {
 
     codestream_process_state _state;
     std::mutex _state_mutex;
+
+    void lock_ip(void) { _ip_mutex.lock(); }
+    void unlock_ip(void) { _ip_mutex.unlock(); }
+
+    void lock_state(void) { _state_mutex.lock(); }
+    void unlock_state(void) { _state_mutex.unlock(); }
 
   public:
 
@@ -77,14 +84,14 @@ namespace codestream {
     std::string processStateExplain(void);
 
     void triggerOpOrder(void) {
-      _ip_mutex_unique.lock();
+      lock_ip();
 
       if (_codestream_flag[OP_ORDER])
 	_codestream_flag.reset(OP_ORDER);
       else
 	_codestream_flag.set(OP_ORDER);
 
-      _ip_mutex_unique.unlock();
+      unlock_ip();
     }
 
     bool is_processing(void);

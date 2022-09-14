@@ -21,7 +21,6 @@ Structure:
 
 	Codestream::_ip		     	  - Record next position of procedures chain.
 	Codestream::_ip_mutex	     	  - Must lock this mutex before access _ip member.
-	Codestream::_ip_mutex_unique	  - RTTI wrapper.
 	Codestream::_ip_end	     	  - End point of procedures chain.
 
 	Codestream::_last_op_ret     	  - Save last operation return.

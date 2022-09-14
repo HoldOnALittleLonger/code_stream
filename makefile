@@ -1,7 +1,7 @@
 all: codestream
 
 CC := g++
-CCFLAGS := -g -Wall -std=gnu++2a
+CCFLAGS := -g -Wall -std=gnu++2a -lpthread
 
 vpath %.cc ./src
 vpath %.h ./inc
