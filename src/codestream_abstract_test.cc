@@ -1,47 +1,62 @@
 #include"codestream_abstract_test.h"
-#include<thread>
-
 #include<unistd.h>
 
-
-codestream::Codestream cds;
-
-void thread_func(void) {
-  cds.startCode(nullptr);
-}
+using namespace codestream;
 
 int main(void) {
-  std::function<void *(void *)> a(func_wrapper), b(func_wrapper);
+  int value(32);
+  int *a(nullptr);
+  int r(0);
+  std::string cdsret("fff");
 
-  codestream::codestream_process_state cps(codestream::INVAILD);
+  Codestream cds;
+  std::function<void *(void *)> f1, f2, f3, f4;
+  f1 = nullptr;
+  f2 = func1;
+  f3 = func2;
+  f4 = func3;
 
-  cds.installProcedure(std::move(a));
-  cds.installProcedure(std::move(b));
+  cds.installProcedure(std::move(f1));
+  cds.installProcedure(std::move(f2));
+  cds.installProcedure(std::move(f3));
+  cds.installProcedure(std::move(f4));
 
-  std::thread t1(thread_func);
-
-  for (auto i(0); i < 5; ++i) {
-  std::cerr<<"entry stop\n"<<std::endl;
+  cds.coding(&value);
   cds.stopCode();
-  std::cerr<<"exit stop\n"<<std::endl;
+
   if (cds.is_suspend()) {
-    std::cout<<"code suspend!"<<std::endl;
-    break; 
+    std::cerr<<"program suspend\n";
+    a = (int *)cds.getLastResult();
+    r = (a) ? *a : r;
+    std::cout<<"value is "<<r<<std::endl;
+  } else {
+    std::cerr<<"suspend error,try to recover\n";
+    try {
+      cds.programErrorRecover();
+    } catch (std::string errs) {
+      std::cerr<<errs<<std::endl;
+      return 1;
+    }
+    if (cds.is_processing()) {
+      std::cerr<<"program recovered from error,now processing\n";
+      goto codestream_processing;
+    } else {
+      std::cerr<<"program recovered failed\n";
+      return 2;
+    }
+
   }
-  else
-    std::cerr<<"suspend unactive"<<std::endl;
-  }
-  cds.uninstallProcedure(2 - 1);
-  
-  sleep(3);
+
   cds.restartCode();
-  t1.join();
-
-  if (cds.is_shutdown())
-    std::cout<<cps<<std::endl;
-  else
-    std::cerr<<"Exec failed"<<std::endl;
-
-
+ codestream_processing:
+  while (!cds.is_shutdown()) {
+    std::cout<<"wait task done"<<std::endl;
+    sleep(1);
+  }
+  cdsret = cds.processStateExplain();
+  std::cout<<cdsret<<std::endl;
+  a = (int *)cds.getLastResult();
+  r = (a) ? *a : r;
+  std::cout<<"value is "<<r<<std::endl;
   return 0;
 }

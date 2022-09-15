@@ -8,24 +8,24 @@ namespace codestream {
 #define LOCAL_UNIQUE_MUTEX_NAME __lum
 #define LOCAL_UNIQUE_MUTEX(n) LOCAL_UNIQUE_MUTEX_NAME##n
 
-    /* cant lock the mutex when entry matching zone */
+    /* cant lock the mutex when enter matching zone */
 
 #define LOCAL_FLAG_ERROR_MUTEX LOCAL_UNIQUE_MUTEX(0)
-#define entry_foe_save_zone			\
+#define enter_foe_save_zone			\
     {						\
     std::unique_lock<std::mutex> LOCAL_FLAG_ERROR_MUTEX(_flag_error_mutex)
 #define leave_foe_save_zone			\
     }
 
 #define LOCAL_IP_MUTEX LOCAL_UNIQUE_MUTEX(1)
-#define entry_ip_save_zone			\
+#define enter_ip_save_zone			\
     {						\
     std::unique_lock<std::mutex> LOCAL_IP_MUTEX(_ip_mutex)
 #define leave_ip_save_zone			\
     }
 
 #define LOCAL_STATE_MUTEX LOCAL_UNIQUE_MUTEX(2)
-#define entry_state_save_zone					\
+#define enter_state_save_zone					\
       {								\
       std::unique_lock<std::mutex> LOCAL_STATE_MUTEX(_state_mutex)
 #define leave_state_save_zone			\
@@ -41,12 +41,12 @@ namespace codestream {
   Codestream::Codestream() {
     /* default constructor */
 
-    entry_foe_save_zone;
+    enter_foe_save_zone;
     _codestream_flag.reset();
     _cerror = NOERROR;
     leave_foe_save_zone;
 
-    entry_ip_save_zone;
+    enter_ip_save_zone;
     _cp_end = 0;
     _last_ip_start = _ip = 0;
     _ip_start = 0;
@@ -54,7 +54,7 @@ namespace codestream {
     _last_op_ret = nullptr;
     leave_ip_save_zone;
 
-    entry_state_save_zone;
+    enter_state_save_zone;
     _state = CODESTREAM_SHUTDOWN;
     _state_when_error_occur = _state;
     leave_state_save_zone;
@@ -62,13 +62,10 @@ namespace codestream {
   }
 
   Codestream::~Codestream() {
-    entry_ip_save_zone;
+    enter_ip_save_zone;
     _code_procedures.clear();
     leave_ip_save_zone;
   }
-
-  // cant invoke get<Function> after called stopCode().
-  // cant invoke get<Function> before restartCode() was called.
 
   opip Codestream::getProgress(void) {
     local_coarser_granularity_lock(_ip_mutex);
@@ -87,13 +84,13 @@ namespace codestream {
 
   void Codestream::installProcedure(std::function<void *(void *)> &&f) {
   
-    entry_ip_save_zone;
+    enter_ip_save_zone;
     _code_procedures.emplace_back(f);
     _ip_end = _cp_end = _code_procedures.size();        // update pos records.
     leave_ip_save_zone;
 
-    // If nothing was installed into procedures, INIT flag should be false.
-    entry_foe_save_zone;
+    /* FLAG_INIT would be true after a procedure was installed. */
+    enter_foe_save_zone;
     if (!_codestream_flag.test(FLAG_INIT))
       _codestream_flag.set(FLAG_INIT);
     leave_foe_save_zone;
@@ -102,14 +99,14 @@ namespace codestream {
 
   void Codestream::installProcedure(std::function<void *(void *)> &&f, aindex pos) {
 
-    entry_ip_save_zone;
+    enter_ip_save_zone;
     auto vector_it(_code_procedures.begin());
     vector_it += ((pos == 0) ? 0 : pos - 1);	// -1 cant be vector index
     _code_procedures.emplace(vector_it, f);
     _ip_end = _cp_end = _code_procedures.size();    
     leave_ip_save_zone;
 
-    entry_foe_save_zone;
+    enter_foe_save_zone;
     if (!_codestream_flag.test(FLAG_INIT))
       _codestream_flag.set(FLAG_INIT);
     leave_foe_save_zone;
@@ -118,13 +115,13 @@ namespace codestream {
 
   void Codestream::uninstallProcedure(aindex which) {
 
-    entry_ip_save_zone;
+    enter_ip_save_zone;
     if (which < _cp_end)
       if (_code_procedures.at(which) == nullptr) {
-	entry_foe_save_zone;
+	enter_foe_save_zone;
 	_cerror = ERROR_UNINSTALLPROCFAILED;
 	leave_foe_save_zone;
-	entry_state_save_zone;
+	enter_state_save_zone;
 	_state_when_error_occur = _state;
 	_state = CODESTREAM_ERROR;
 	leave_state_save_zone;
@@ -134,10 +131,10 @@ namespace codestream {
 	_code_procedures[which] = f;	// use nullptr means the element is in useless state.
       }
     else {
-      entry_foe_save_zone;
+      enter_foe_save_zone;
       _cerror = ERROR_UNINSTALLPROCFAILED;
       leave_foe_save_zone;
-      entry_state_save_zone;
+      enter_state_save_zone;
       _state_when_error_occur = _state;
       _state = CODESTREAM_ERROR;
       leave_state_save_zone;
@@ -154,8 +151,9 @@ namespace codestream {
 
   void Codestream::resetCodestream(void) {
     local_coarser_granularity_lock(_state_mutex);
-    local_coarser_granularity_lock(_flag_error_mutex);
     local_coarser_granularity_lock(_ip_mutex);
+    local_coarser_granularity_lock(_flag_error_mutex);
+
 
     _state_when_error_occur = _state = CODESTREAM_SHUTDOWN;
     _cerror = NOERROR;
@@ -166,10 +164,10 @@ namespace codestream {
     resetCodestream();
 
     /* codestream have to init */
-    entry_foe_save_zone;
+    enter_foe_save_zone;
     if (!_codestream_flag.test(FLAG_INIT)) {
       _cerror = ERROR_NOINIT;
-      entry_state_save_zone;
+      enter_state_save_zone;
       _state_when_error_occur = _state;
       _state = CODESTREAM_ERROR;
       leave_state_save_zone;
@@ -177,7 +175,7 @@ namespace codestream {
     }
     leave_foe_save_zone;
 
-    entry_state_save_zone;
+    enter_state_save_zone;
     _state_when_error_occur = _state = CODESTREAM_PROGRESSING;
     leave_state_save_zone;
 
@@ -212,14 +210,14 @@ namespace codestream {
       }
       _state_mutex.unlock();
 	
-      entry_ip_save_zone;
-      entry_foe_save_zone;
+      enter_ip_save_zone;
+      enter_foe_save_zone;
       if ((!_codestream_flag[FLAG_OPDIRECTION] && (_ip < _ip_end))
 	  || (_codestream_flag[FLAG_OPDIRECTION] && (_ip >= _ip_start))) {
 	f = _code_procedures.at(_ip);
 	_ip = (!_codestream_flag[FLAG_OPDIRECTION]) ? _ip + 1 : _ip - 1;        // set direction.
       } else {
-	entry_state_save_zone;
+	enter_state_save_zone;
 	_state = CODESTREAM_SHUTDOWN;
 	leave_state_save_zone;
       }
@@ -229,7 +227,7 @@ namespace codestream {
 
       if (f != nullptr) {
 	ret_of_f = f(ret_of_f);
-	entry_ip_save_zone;
+	enter_ip_save_zone;
 	_last_op_ret = ret_of_f;
 	leave_ip_save_zone;
       }
@@ -243,10 +241,10 @@ namespace codestream {
 
   void Codestream::stopCode(void) {
 
-    entry_foe_save_zone;
+    enter_foe_save_zone;
     if (!_codestream_flag.test(FLAG_INIT)) {
       _cerror = ERROR_NOINIT;
-      entry_state_save_zone;
+      enter_state_save_zone;
       _state_when_error_occur = _state;
       _state = CODESTREAM_ERROR;
       leave_state_save_zone;
@@ -255,12 +253,12 @@ namespace codestream {
     leave_foe_save_zone;
 
 
-    entry_ip_save_zone;
+    enter_ip_save_zone;
     if (_ip >= _ip_end) {        // if _ip > _ip_end, there would no residue procedure have to exec.
-      entry_foe_save_zone;
+      enter_foe_save_zone;
       _cerror = ERROR_SUSPENDFAILED;
       leave_foe_save_zone;
-      entry_state_save_zone;
+      enter_state_save_zone;
       _state_when_error_occur = _state;
       _state = CODESTREAM_ERROR;
       leave_state_save_zone;
@@ -269,7 +267,7 @@ namespace codestream {
     leave_ip_save_zone;
 
     if (this->is_processing()) {	// try to stop coding
-      entry_state_save_zone;
+      enter_state_save_zone;
       _state = CODESTREAM_SUSPEND;
       leave_state_save_zone;
     }
@@ -282,10 +280,10 @@ namespace codestream {
   void Codestream::restartCode(void) {
 
     /* check if program had init */
-    entry_foe_save_zone;
+    enter_foe_save_zone;
     if (!_codestream_flag.test(FLAG_INIT)) {
       _cerror = ERROR_NOINIT;
-      entry_state_save_zone;
+      enter_state_save_zone;
       _state_when_error_occur = _state;
       _state = CODESTREAM_ERROR;
       leave_state_save_zone;
@@ -294,14 +292,14 @@ namespace codestream {
     leave_foe_save_zone;
 
 
-    entry_state_save_zone;
+    enter_state_save_zone;
     if (_state == CODESTREAM_SUSPEND) {
       _state = CODESTREAM_PROGRESSING;
       _work_condition.notify_one();
     } else {
       _state_when_error_occur = _state;
       _state = CODESTREAM_ERROR;
-      entry_foe_save_zone;
+      enter_foe_save_zone;
       _cerror = ERROR_RECOVERFAILED;
       leave_foe_save_zone;
     }
@@ -416,8 +414,8 @@ namespace codestream {
 
   void Codestream::programErrorRecover(void) noexcept(false){
     local_coarser_granularity_lock(_state_mutex);
-    local_coarser_granularity_lock(_flag_error_mutex);
     local_coarser_granularity_lock(_ip_mutex);
+    local_coarser_granularity_lock(_flag_error_mutex);
 
     switch (_state) {
     case CODESTREAM_ERROR:

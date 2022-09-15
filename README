@@ -102,6 +102,11 @@ Structure:
 	/* FLAG_OPDIRECTION == 0 -> left to right */
 	/* FLAG_OPDIRECTION == 1 -> right to left */
 
+	//!! If want to lock _flag_error_mutex _ip_mutex _state_mutex in a special scope,
+	//!! have to lock them in this order :
+	//!!   _state_mutex -> _ip_mutex -> _flag_error_mutex
+	//!! to release them in opposite order.
+
 
 	struct op_arg_ret {
 	       void 	  *b1;		/* b1 should point to a buffer which would contains src data */
@@ -143,7 +148,9 @@ Develop environment:
 	C++ 20
 
 Debug or Other:
-      	 state and flag is so chaotic. have to change design between them. (TODO)
+      	 state and flag is so chaotic. have to change design between them. (Finished)
+	 add new feature that let controller enter sleeping until system state was changed. (TODO)
+	     // This feature should useful to wait state moving in a cycle
 
 
 Complement:

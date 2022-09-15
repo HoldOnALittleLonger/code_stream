@@ -82,6 +82,13 @@ namespace codestream {
 
     void resetCodestream(void);
 
+
+    // If want to lock _flag_error_mutex, _ip_mutex, _state_mutex,
+    // have to lock them in the order is :
+    //   _state_mutex -> _ip_mutex -> _flag_error_mutex
+    // unlock them in opposite order.
+
+
   public:
 
     Codestream();
