@@ -10,8 +10,9 @@
 #include<cstddef>
 #include<string>
 #include<cstdbool>
-
-#define VECTOR_SIZE 1
+#include<thread>
+#include<condition_variable>
+#include<exception>
 
 namespace codestream {
 
@@ -19,81 +20,92 @@ namespace codestream {
   using opip = short;
   using opci = aindex;
 
-  enum codestream_process_state {
-    INVAILD,
-    NOERROR,
-    NOINIT,
-    IN_PROGRESSING,
-    SHUTDOWN,
-    UNINSTALL_FAILED,
-    UNINSTALL_EXCEED,
-    SUSPEND,
-    SUSPEND_FAILED,
-    NOT_SUSPEND
-  };
-
-
   class Codestream {
 
   private:
 
-    enum {INIT = 0,
-	  OP_ORDER,
-	  STOPPED,
-	  CODESTREAM_FLAG_TOTAL
-    };
-
     std::vector<std::function<void *(void *)>> _code_procedures;
     aindex _cp_end;
-    std::bitset<CODESTREAM_FLAG_TOTAL> _codestream_flag;
-    /* if INIT == 0, _cp_end AND _ip AND _last_install AND _ip_end will are useless */ 
+
+    // _cp_end would be changed only the time at install procedure
+    // so,can use _ip_mutex to save it.
+    // because _ip_mutex would as index for vector
+
+
+    enum codestream_flag {
+      FLAG_INIT,
+      FLAG_OPDIRECTION,	// 0 -> ltor, 1 -> rtol
+      FLAG_TAIL
+    };
+    std::bitset<FLAG_TAIL> _codestream_flag;
+
+    enum codestream_error {
+      NOERROR,
+      ERROR_NOINIT,
+      ERROR_INSTALLPROCFAILED,
+      ERROR_UNINSTALLPROCFAILED,
+      ERROR_SUSPENDFAILED,
+      ERROR_RECOVERFAILED
+    };
+    codestream_error _cerror;
+    std::mutex _flag_error_mutex;
+    void lock_foe(void) { _flag_error_mutex.lock(); }
+    void unlock_foe(void) { _flag_error_mutex.unlock(); }
+
+    enum codestream_state {
+      CODESTREAM_PROGRESSING,
+      CODESTREAM_SUSPEND,
+      CODESTREAM_SHUTDOWN,
+      CODESTREAM_ERROR
+    };
+    codestream_state _state;
+    codestream_state _state_when_error_occur;
+    std::mutex _state_mutex;
+    void lock_state(void) { _state_mutex.lock(); }
+    void unlock_state(void) { _state_mutex.unlock(); }
 
     short _ip;
+    short _last_ip_start;
     std::mutex _ip_mutex;
-    aindex _ip_start;
-    aindex _ip_end;
-
-    void *_last_op_ret;
-
-    codestream_process_state _state;
-    std::mutex _state_mutex;
-
     void lock_ip(void) { _ip_mutex.lock(); }
     void unlock_ip(void) { _ip_mutex.unlock(); }
 
-    void lock_state(void) { _state_mutex.lock(); }
-    void unlock_state(void) { _state_mutex.unlock(); }
+    aindex _ip_start;
+    aindex _ip_end;
+    // for to access _ip<...>,must lock _ip_mutex
+
+    void *_last_op_ret;
+    // for to access _last_op_ret,must lock _ip_mutex
+
+    void startCode(void *vec);
+    std::condition_variable _work_condition;
+
+    void resetCodestream(void);
 
   public:
 
     Codestream();
     ~Codestream();
 
-    codestream_process_state startCode(void *vec);
-    codestream_process_state stopCode(void);
-    codestream_process_state restartCode(void);
 
+    void coding(void *vec);	// a thread wrapper for startCode()
+    void stopCode(void);
+    void restartCode(void);
+    void setStartPoint(aindex i);
     void installProcedure(std::function<void *(void *)> &&f);
     void installProcedure(std::function<void *(void *)> &&f, aindex pos);
-    codestream_process_state uninstallProcedure(aindex which);
+    void uninstallProcedure(aindex which);
 
     opip getProgress(void);
     void *getLastResult(void);
     opci getOpChainSize(void);
 
     std::string processStateExplain(void);
+    std::string processErrorExplain(void);
 
-    void triggerOpOrder(void) {
-      lock_ip();
+    void programErrorRecover(void) noexcept(false);
 
-      if (_codestream_flag[OP_ORDER])
-	_codestream_flag.reset(OP_ORDER);
-      else
-	_codestream_flag.set(OP_ORDER);
-
-      unlock_ip();
-    }
-
+    void toggleOpDirection(void);
     bool is_processing(void);
     bool is_suspend(void);
     bool is_shutdown(void);

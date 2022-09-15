@@ -17,17 +17,27 @@ Structure:
 				    	  - Codestream' main procedure would use these procedure to operates data by an order was assigned.
 	Codestream::_cp_end		  - Index of end point for _code_procedures.
 
-	Codestream::_codestream_flag	  - std::bitset object.It has three bit [INIT, OP_ORDER, STOPPED]
+	Codestream::_codestream_error	  - A std::bitset object which has some bits to indicate that error is occurs.
+
+	Codestream::_codestream_flag	  - A std::bitset object which has some bits to saves some flags.
 
 	Codestream::_ip		     	  - Record next position of procedures chain.
+	Codestream::_last_ip_start	  - For reset.
 	Codestream::_ip_mutex	     	  - Must lock this mutex before access _ip member.
+	Codestream::_ip_start		  - _ip cant less than this variable.
 	Codestream::_ip_end	     	  - End point of procedures chain.
 
 	Codestream::_last_op_ret     	  - Save last operation return.
 	
 	Codestream::_state		  - Codestream status.
+	Codestream::_state_when_error_occur - For recover from trap.
 	Codestream::_state_mutex	  - Saver of _state.
 
+	Codestream::_work_condition	  - std::condtion_variable for woker control.
+
+	Codestream::resetCodestream()	  - Reset codestream.
+	Codestream::setStartPoint()	  - Set _ip.
+	Codestream::coding()		  - thread wrapper for startCode().
 	Codestream::startCode()	     	  - Start coding.
 	Codestream::stopCode()	     	  - Stop coding.
 	Codestream::restartCode()    	  - Restart coding from breakpoint.
@@ -39,26 +49,59 @@ Structure:
 	Codestream::getLastResult()	  - Return _last_op_ret,require _ip_mutex.
 	Codestream::getOpChainSize() 	  - Return _cp_end.
 	Codestream::processStateExplain() - Return a C++ string to explain what happen now.
-	Codestream::triggerOpOrder()	  - A trigger to change _ip increase direction.increase
+	Codestream::processErrorExplain() - Return a C++ string to explain error.
+
+	Codestream::programErrorRecover() - Error recovery function.
+					  - Caller should do the action cause error again.
+					  - Caller can use is_<feature> function to check process state.
+
+	Codestream::toggleOpOrder()	  - A toggle to change _ip increase direction.increase
+	Codestream::is_processing()	  - Return true -> _state == CODESTREAM_PROGRESSING,otherwise false.
+	Codestream::is_suspend()	  - Return true -> _state == CODESTREAM_SUSPEND,otherwise false.
+	Codestream::is_shutdown()	  - Return true -> _state == CODESTREAM_SHUTDOWN,otherwise false.
+	Codestream::is_execsuccess()	  - Return true -> _cerror == NOERROR,otherwise false.
 
 
-	enum {
-	     INIT = 0,
-	     OP_ORDER,
-	     STOPPED,
-	     CODESTREAM_FLAG_TOTAL
+
+	enum codestream_state {
+	     CODESTREAM_PROGRESSING,		// coding task is working now
+	     CODESTREAM_SUSPEND,		// coding task was suspended		
+	     CODESTREAM_ERROR,			// an error occurred,controller have to solve error
+	     CODESTREAM_SHUTDOWN		// coding task had done
 	};
 
-	enum codestream_process_state {
-	     INVALID,
-	     NOERROR,
-	     NOINIT,
-	     IN_PROGRESSING,
-	     SHUTDOWN,
-	     UNINSTALL_FAILED,
-	     SUSPEND,
-	     NOT_SUSPEND
+	/* task worker is probably set state to ERROR OR SHUTDOWN */
+	/* task worker booter just only set state to PROGRESSING */
+	/* if controller stop task,state should be setted to SUSPEND */
+	/* if controller recover task from suspend,state should be setted to PROGRESSING */
+	/* error handler,if state in ERROR,it must deal with problem that cause error then sets state to PROGRESSING */
+
+	enum codestream_error_state {
+	     ERROR_NOINT,
+	     ERROR_INSTALLPROCFAILED,
+	     ERROR_UNINSTALLPROCFAILED,
+	     ERROR_SUSPENDFAILED,
+	     ERROR_RECOVERFAILED
 	};
+
+
+
+	/* ERROR_NOINT : may be none of procedures was installed */
+	/* ERROR_INSTALLPROCFAILED : had fault when install procedure */
+	/* ERROR_UNINSTALLPROCFAILED : had fault when uninstall procedure */
+	/* ERROR_SUSPENDFAILED : it's possible the task in SHUTDOWN */
+	/* ERROR_RECOVERFAILED : cant recover from SUSPEND,may be task in SHUTDOWN or in PROGRESSING */
+
+	enum codestream_flag {
+	     FLAG_INIT,
+	     FLAG_OPDIRECTION
+	};
+	
+	/* FLAG_INIT == 0 -> noinit */
+	/* FLAG_INIT == 1 -> had init */
+	/* FLAG_OPDIRECTION == 0 -> left to right */
+	/* FLAG_OPDIRECTION == 1 -> right to left */
+
 
 	struct op_arg_ret {
 	       void 	  *b1;		/* b1 should point to a buffer which would contains src data */
@@ -100,8 +143,8 @@ Develop environment:
 	C++ 20
 
 Debug or Other:
-	TODO:
-	<Debug and TODO.All programs are not probably no bugs.And they are also have the space to optimize.>
+      	 state and flag is so chaotic. have to change design between them. (TODO)
+
 
 Complement:
 	<There could place some messages as additional.Addition could explain the project in the further gradation.>

@@ -4,328 +4,465 @@
 
 namespace codestream {
 
-#define LOCAL_ULOCKER __luniquelocker
-#define local_unique_locker(__locker) std::unique_lock<std::mutex> LOCAL_ULOCKER(__locker)
-#define local_unique_unlock() LOCAL_ULOCKER.unlock()
-#define local_unique_lock() LOCAL_ULOCKER.lock()
+    /* This is local lock macro for RAII */
+#define LOCAL_UNIQUE_MUTEX_NAME __lum
+#define LOCAL_UNIQUE_MUTEX(n) LOCAL_UNIQUE_MUTEX_NAME##n
+
+    /* cant lock the mutex when entry matching zone */
+
+#define LOCAL_FLAG_ERROR_MUTEX LOCAL_UNIQUE_MUTEX(0)
+#define entry_foe_save_zone			\
+    {						\
+    std::unique_lock<std::mutex> LOCAL_FLAG_ERROR_MUTEX(_flag_error_mutex)
+#define leave_foe_save_zone			\
+    }
+
+#define LOCAL_IP_MUTEX LOCAL_UNIQUE_MUTEX(1)
+#define entry_ip_save_zone			\
+    {						\
+    std::unique_lock<std::mutex> LOCAL_IP_MUTEX(_ip_mutex)
+#define leave_ip_save_zone			\
+    }
+
+#define LOCAL_STATE_MUTEX LOCAL_UNIQUE_MUTEX(2)
+#define entry_state_save_zone					\
+      {								\
+      std::unique_lock<std::mutex> LOCAL_STATE_MUTEX(_state_mutex)
+#define leave_state_save_zone			\
+    }
+
+/* while use coarser-grained lock,neednt lock __locker manually. */
+/* lock would be released after exit local environment */
+/* dont use them whith zone-savers were defined over there */
+#define local_coarser_granularity_lock(__locker) \ 
+  std::unique_lock<std::mutex> LOCAL_UNIQUE_MUTEX(__locker##32)(__locker)
+
 
   Codestream::Codestream() {
     /* default constructor */
-    
+
+    entry_foe_save_zone;
     _codestream_flag.reset();
-    _codestream_flag.set(OP_ORDER);        // default is left to right.
+    _cerror = NOERROR;
+    leave_foe_save_zone;
+
+    entry_ip_save_zone;
     _cp_end = 0;
-    _ip = 0;
+    _last_ip_start = _ip = 0;
     _ip_start = 0;
     _ip_end = 0;
     _last_op_ret = nullptr;
-    _state = INVAILD;
+    leave_ip_save_zone;
 
-    /*    for (auto i : _code_procedures)
-      i = nullptr;
-    */
+    entry_state_save_zone;
+    _state = CODESTREAM_SHUTDOWN;
+    _state_when_error_occur = _state;
+    leave_state_save_zone;
 
   }
 
   Codestream::~Codestream() {
-    lock_ip();
+    entry_ip_save_zone;
     _code_procedures.clear();
-    unlock_ip();
+    leave_ip_save_zone;
   }
 
   // cant invoke get<Function> after called stopCode().
   // cant invoke get<Function> before restartCode() was called.
 
   opip Codestream::getProgress(void) {
-    opip curr(0);
-    lock_ip();
-    curr = _ip;
-    unlock_ip();
-    return curr;
+    local_coarser_granularity_lock(_ip_mutex);
+    return _ip;
   }
 
   void *Codestream::getLastResult(void) {
-    void *ret(nullptr);
-    lock_ip();
-    ret = _last_op_ret;
-    unlock_ip();
-    return ret;
+    local_coarser_granularity_lock(_state_mutex);
+    return _last_op_ret;
   }
 
   opci Codestream::getOpChainSize(void) {
-    opci i(0);
-    lock_ip();
-    i = _cp_end;
-    unlock_ip();
-    return i;
+    local_coarser_granularity_lock(_ip_mutex);
+    return _cp_end;
   }
 
   void Codestream::installProcedure(std::function<void *(void *)> &&f) {
-    bool is_locked(false);
   
-    if (!this->is_suspend()) {
-      lock_ip();
-      is_locked = true;
-    }
+    entry_ip_save_zone;
     _code_procedures.emplace_back(f);
+    _ip_end = _cp_end = _code_procedures.size();        // update pos records.
+    leave_ip_save_zone;
 
     // If nothing was installed into procedures, INIT flag should be false.
-    if (!_codestream_flag[INIT])
-      _codestream_flag.set(INIT);
-    _ip_end = _cp_end = _code_procedures.size();        // update pos records.
-    
-    if (is_locked)
-      unlock_ip();
+    entry_foe_save_zone;
+    if (!_codestream_flag.test(FLAG_INIT))
+      _codestream_flag.set(FLAG_INIT);
+    leave_foe_save_zone;
+
   }
 
   void Codestream::installProcedure(std::function<void *(void *)> &&f, aindex pos) {
-    bool is_locked(false);
 
-    if (!this->is_suspend()) {
-      lock_ip();
-      is_locked = true;
-    }
-
+    entry_ip_save_zone;
     auto vector_it(_code_procedures.begin());
-
-    vector_it += pos;
+    vector_it += ((pos == 0) ? 0 : pos - 1);	// -1 cant be vector index
     _code_procedures.emplace(vector_it, f);
+    _ip_end = _cp_end = _code_procedures.size();    
+    leave_ip_save_zone;
 
-    if (!_codestream_flag[INIT])
-      _codestream_flag.set(INIT);
-    _ip_end = _cp_end = _code_procedures.size();
+    entry_foe_save_zone;
+    if (!_codestream_flag.test(FLAG_INIT))
+      _codestream_flag.set(FLAG_INIT);
+    leave_foe_save_zone;
 
-
-    if (is_locked)
-      unlock_ip();
   }
 
-  codestream_process_state Codestream::uninstallProcedure(aindex which) {
-    local_unique_locker(_state_mutex);
-    local_unique_unlock();
+  void Codestream::uninstallProcedure(aindex which) {
 
-    bool is_locked(false);
-
-    if (!this->is_suspend()) {
-      lock_ip();
-      is_locked = true;
-    }
-
-    local_unique_lock();
-    _state = NOERROR;
-    local_unique_unlock();
-
+    entry_ip_save_zone;
     if (which < _cp_end)
       if (_code_procedures.at(which) == nullptr) {
-	local_unique_lock();
-	_state = UNINSTALL_FAILED;
-	local_unique_unlock();
+	entry_foe_save_zone;
+	_cerror = ERROR_UNINSTALLPROCFAILED;
+	leave_foe_save_zone;
+	entry_state_save_zone;
+	_state_when_error_occur = _state;
+	_state = CODESTREAM_ERROR;
+	leave_state_save_zone;
       } else {
 	auto f = _code_procedures[which];
 	f = nullptr;
 	_code_procedures[which] = f;	// use nullptr means the element is in useless state.
       }
     else {
-      local_unique_lock();
-      _state = UNINSTALL_EXCEED;	// want to uninstall element which is not in an effective scope.
-      local_unique_unlock();
+      entry_foe_save_zone;
+      _cerror = ERROR_UNINSTALLPROCFAILED;
+      leave_foe_save_zone;
+      entry_state_save_zone;
+      _state_when_error_occur = _state;
+      _state = CODESTREAM_ERROR;
+      leave_state_save_zone;
     }
+    leave_ip_save_zone;
 
-    if (is_locked)
-      unlock_ip();
-    return _state;
+  }
+
+  void Codestream::setStartPoint(aindex i) {
+    local_coarser_granularity_lock(_ip_mutex);
+    if (i >= _ip_start && i < _ip_end)
+      _last_ip_start = _ip = i;
+  }
+
+  void Codestream::resetCodestream(void) {
+    local_coarser_granularity_lock(_state_mutex);
+    local_coarser_granularity_lock(_flag_error_mutex);
+    local_coarser_granularity_lock(_ip_mutex);
+
+    _state_when_error_occur = _state = CODESTREAM_SHUTDOWN;
+    _cerror = NOERROR;
+    _ip = _last_ip_start;
+  }
+
+  void Codestream::coding(void *vec) {
+    resetCodestream();
+
+    /* codestream have to init */
+    entry_foe_save_zone;
+    if (!_codestream_flag.test(FLAG_INIT)) {
+      _cerror = ERROR_NOINIT;
+      entry_state_save_zone;
+      _state_when_error_occur = _state;
+      _state = CODESTREAM_ERROR;
+      leave_state_save_zone;
+      return;
+    }
+    leave_foe_save_zone;
+
+    entry_state_save_zone;
+    _state_when_error_occur = _state = CODESTREAM_PROGRESSING;
+    leave_state_save_zone;
+
+    std::thread worker1(&Codestream::startCode, this, vec);
+    worker1.detach();	/* after detach,cant invoke join() to it. */
   }
 
 
-  codestream_process_state Codestream::startCode(void *vec) {
-    local_unique_locker(_state_mutex);
+  void Codestream::startCode(void *vec) {
     std::function<void *(void *)> f(nullptr);
-
-    if (!_codestream_flag[INIT]) {
-      _state = NOINIT;
-      return _state;
-    }
-
-    local_unique_unlock();
+    void *ret_of_f(vec);
 
     // like a signal system
-
     do {
-      lock_ip();
-      local_unique_lock();
-      _state = IN_PROGRESSING;
-      local_unique_unlock();
+      f = nullptr;
 
-      if ((_codestream_flag[OP_ORDER] && (_ip < _ip_end))
-	  || (!_codestream_flag[OP_ORDER] && (_ip >= _ip_start))) {
-	if (_code_procedures.at(_ip) != nullptr) {
-	  f = _code_procedures.at(_ip);
-	  unlock_ip();	// dont lock ip while process f
-	  _last_op_ret = f(_last_op_ret);
-	  lock_ip();
-	}
-       
-	_ip = (_codestream_flag[OP_ORDER]) ? _ip + 1 : _ip - 1;        // set direction.
-	unlock_ip();
-      } else {
-	local_unique_lock();
-	_state = SHUTDOWN;
-	local_unique_unlock();
-	unlock_ip();
+    work_condition_check:
+      _state_mutex.lock();
+      if (_state == CODESTREAM_SUSPEND || _state == CODESTREAM_ERROR) {
+	_state_mutex.unlock();
+
+	/* condition_variable needs a RAII wrapper for std::mutex */
+	/* it's the type of std::unique_lock */
+	std::mutex condition_mutex;
+	std::unique_lock<std::mutex> LOCAL_UNIQUE_MUTEX(cond)(condition_mutex);
+	_work_condition.wait(LOCAL_UNIQUE_MUTEX(cond));
+
+	goto work_condition_check;
+      } else if (_state == CODESTREAM_SHUTDOWN) {
+	_state_mutex.unlock();
 	break;
+      }
+      _state_mutex.unlock();
+	
+      entry_ip_save_zone;
+      entry_foe_save_zone;
+      if ((!_codestream_flag[FLAG_OPDIRECTION] && (_ip < _ip_end))
+	  || (_codestream_flag[FLAG_OPDIRECTION] && (_ip >= _ip_start))) {
+	f = _code_procedures.at(_ip);
+	_ip = (!_codestream_flag[FLAG_OPDIRECTION]) ? _ip + 1 : _ip - 1;        // set direction.
+      } else {
+	entry_state_save_zone;
+	_state = CODESTREAM_SHUTDOWN;
+	leave_state_save_zone;
+      }
+
+      leave_foe_save_zone;
+      leave_ip_save_zone;
+
+      if (f != nullptr) {
+	ret_of_f = f(ret_of_f);
+	entry_ip_save_zone;
+	_last_op_ret = ret_of_f;
+	leave_ip_save_zone;
       }
 
     } while (1);
 
-    local_unique_lock();
-    return _state;
   }
 
 
   // dont call stop and restart span thread bounder
 
-  codestream_process_state Codestream::stopCode(void) {
-    local_unique_locker(_state_mutex);
-    local_unique_unlock();
+  void Codestream::stopCode(void) {
 
-    if (!_codestream_flag[INIT]) {
-      local_unique_lock();
-      _state = NOINIT;
-      return _state;
+    entry_foe_save_zone;
+    if (!_codestream_flag.test(FLAG_INIT)) {
+      _cerror = ERROR_NOINIT;
+      entry_state_save_zone;
+      _state_when_error_occur = _state;
+      _state = CODESTREAM_ERROR;
+      leave_state_save_zone;
+      return;
     }
+    leave_foe_save_zone;
 
-    lock_ip();	// ip mutex
-    local_unique_lock();
+
+    entry_ip_save_zone;
     if (_ip >= _ip_end) {        // if _ip > _ip_end, there would no residue procedure have to exec.
-      _state = SHUTDOWN;
-      unlock_ip();
-      return _state;
+      entry_foe_save_zone;
+      _cerror = ERROR_SUSPENDFAILED;
+      leave_foe_save_zone;
+      entry_state_save_zone;
+      _state_when_error_occur = _state;
+      _state = CODESTREAM_ERROR;
+      leave_state_save_zone;
+      return;
     }
+    leave_ip_save_zone;
 
-    local_unique_unlock();
     if (this->is_processing()) {	// try to stop coding
-      _codestream_flag.set(STOPPED);
-      local_unique_lock();
-      _state = SUSPEND;
-      return _state;
+      entry_state_save_zone;
+      _state = CODESTREAM_SUSPEND;
+      leave_state_save_zone;
     }
-
-    local_unique_lock();
-    _state = SUSPEND_FAILED;	// locked failed,may be coding isnt working.
-    unlock_ip();
-    return _state;
   }
 
   // should use stopCode() and restartCode() as a commands sequence
   // a1 a2 <stopCode()> a3 a4 <restartCode()> ...
   // and cant invoke get<Function> between them.
 
-  codestream_process_state Codestream::restartCode(void) {
-    local_unique_locker(_state_mutex);
-    local_unique_unlock();
+  void Codestream::restartCode(void) {
 
-    if (!_codestream_flag[INIT]) {
-      local_unique_lock();
-      _state = NOINIT;
-      return _state;
+    /* check if program had init */
+    entry_foe_save_zone;
+    if (!_codestream_flag.test(FLAG_INIT)) {
+      _cerror = ERROR_NOINIT;
+      entry_state_save_zone;
+      _state_when_error_occur = _state;
+      _state = CODESTREAM_ERROR;
+      leave_state_save_zone;
+      return;
     }
+    leave_foe_save_zone;
 
 
-    local_unique_lock();
-    if (_codestream_flag[STOPPED]) {
-      _codestream_flag.reset(STOPPED);
-      _state = IN_PROGRESSING;
-      unlock_ip();
+    entry_state_save_zone;
+    if (_state == CODESTREAM_SUSPEND) {
+      _state = CODESTREAM_PROGRESSING;
+      _work_condition.notify_one();
+    } else {
+      _state_when_error_occur = _state;
+      _state = CODESTREAM_ERROR;
+      entry_foe_save_zone;
+      _cerror = ERROR_RECOVERFAILED;
+      leave_foe_save_zone;
     }
-    else {
-      local_unique_lock();
-      _state = NOT_SUSPEND;
-    }
-
-    return _state;
+    leave_state_save_zone;
   }
 
+  void Codestream::toggleOpDirection(void) {
+      local_coarser_granularity_lock(_flag_error_mutex);
+      if (_codestream_flag.test(FLAG_OPDIRECTION))
+	_codestream_flag.reset(FLAG_OPDIRECTION);
+      else
+	_codestream_flag.set(FLAG_OPDIRECTION);
+  }
+  
   bool Codestream::is_processing(void) {
-    local_unique_locker(_state_mutex);
-    return _state == IN_PROGRESSING;
+    local_coarser_granularity_lock(_state_mutex);
+    return _state == CODESTREAM_PROGRESSING;
   }
 
   bool Codestream::is_suspend(void) {
-    local_unique_locker(_state_mutex);
-    return _state == SUSPEND;
+    local_coarser_granularity_lock(_state_mutex);
+    return _state == CODESTREAM_SUSPEND;
   }
 
   bool Codestream::is_shutdown(void) {
-    local_unique_locker(_state_mutex);
-    return _state == SHUTDOWN;
+    local_coarser_granularity_lock(_state_mutex);
+    return _state == CODESTREAM_SHUTDOWN;
   }
 
   bool Codestream::is_execsuccess(void) {
-    local_unique_locker(_state_mutex);
-    return _state == NOERROR;
+    local_coarser_granularity_lock(_flag_error_mutex);
+    return _cerror == NOERROR;
   }
 
   std::string Codestream::processStateExplain(void) {
+    local_coarser_granularity_lock(_state_mutex);
     std::string msg("0000");
-    local_unique_locker(_state_mutex);
     switch (_state) {
-    case INVAILD:
+    case CODESTREAM_PROGRESSING:
       msg.clear();
-      msg = "codestream: program is unavaiable.";
+      msg = "codestream: progressing...";
       break;
 
-    case NOERROR:
+    case CODESTREAM_SUSPEND:
       msg.clear();
-      msg = "codestream: executing no error happend.";
+      msg = "codestream: process suspended.";
       break;
 
-    case NOINIT:
+    case CODESTREAM_SHUTDOWN:
       msg.clear();
-      msg = "codestream: program had not initialized,may be none of any procedure was installed.";
+      msg = "codestream: process shutdown.";
       break;
 
-    case IN_PROGRESSING:
+    case CODESTREAM_ERROR:
       msg.clear();
-      msg = "codestream: working...";
+      msg = "codestream: in trap,must to deal with the problem before start work.";
       break;
 
-    case SUSPEND_FAILED:
-      msg.clear();
-      msg = "codestream: may be procedure is not in progressing.";
-      break;
-
-    case SHUTDOWN:
-      msg.clear();
-      msg = "codestream: working shutdown.";
-      break;
-
-    case UNINSTALL_FAILED:
-      msg.clear();
-      msg = "codestream: uninstall procedure was failed,may be such procedure was not installed.";
-      break;
-
-    case UNINSTALL_EXCEED:
-      msg.clear();
-      msg = "codestream: cant uninstall procedure which is not in op-chain.";
-
-    case SUSPEND:
-      msg.clear();
-      msg = "codestream: suspended.";
-      break;
-
-    case NOT_SUSPEND:
-      msg.clear();
-      msg = "codestream: cant recover program from suspend while it had not be suspended.";
-      break;
-      
     default:
       msg.clear();
-      msg = "codestream: no defined state.";
+      msg = "codestream: unknown state,program error.";
       break;
 
     }
 
     return msg;
+  }
+
+  std::string Codestream::processErrorExplain(void) {
+    local_coarser_granularity_lock(_flag_error_mutex);
+    std::string msg("0000");
+
+    switch (_cerror) {
+    case NOERROR:
+      msg.clear();
+      msg = "codestream error: working fine,no error occurred.";
+      break;
+
+    case ERROR_NOINIT:
+      msg.clear();
+      msg = "codestream error: program had not init,this may be a programing error.";
+      break;
+
+    case ERROR_INSTALLPROCFAILED:
+      msg.clear();
+      msg = "codestream error: install procedure failed.";
+      break;
+
+    case ERROR_UNINSTALLPROCFAILED:
+      msg.clear();
+      msg = "codestream error: uninstall procedure failed.";
+      break;
+
+    case ERROR_SUSPENDFAILED:
+      msg.clear();
+      msg = "codestream error: suspend process failed.may be process shutdown.";
+      break;
+
+    case ERROR_RECOVERFAILED:
+      msg.clear();
+      msg = "codestream error: recover process failed.may be process wasnt suspended or shutdown.";
+      break;
+
+    default:
+      msg.clear();
+      msg = "codestream error: unknown error,this is a programming error.";
+      break;
+    }
+
+    return msg;
+  }
+
+  void Codestream::programErrorRecover(void) noexcept(false){
+    local_coarser_granularity_lock(_state_mutex);
+    local_coarser_granularity_lock(_flag_error_mutex);
+    local_coarser_granularity_lock(_ip_mutex);
+
+    switch (_state) {
+    case CODESTREAM_ERROR:
+      switch (_cerror) {
+      case NOERROR:
+	/* in state but no error number,this is a trap */
+	/* in this case,should throw a exception */
+	throw std::string{"exception: system is ERROR state now,but nothing of error number was setted."};
+
+	/* These situations,just retry operations */
+
+      case ERROR_NOINIT:
+	_state_when_error_occur = _state = CODESTREAM_SHUTDOWN;
+	_cerror = NOERROR;
+	break;
+
+
+	/* if failed in install or uninstall,should suspend system */
+      case ERROR_INSTALLPROCFAILED:
+	_state = CODESTREAM_SUSPEND;
+	_cerror = NOERROR;
+	break;
+
+      case ERROR_UNINSTALLPROCFAILED:
+	_state = CODESTREAM_SUSPEND;
+	_cerror = NOERROR;
+	break;
+
+	/* suspendfailed and recoverfailed,may be system not in a properly state */
+      case ERROR_SUSPENDFAILED:
+	_state = _state_when_error_occur;
+	_cerror = NOERROR;
+	break;
+
+      case ERROR_RECOVERFAILED:
+	_state = _state_when_error_occur;
+	_cerror = NOERROR;
+	break;
+
+      default:
+	throw std::string{"exception: system is ERROR state now,but has a unknown error."};
+      }
+
+    default:;	/* do nothing */
+    }
   }
 
 }
