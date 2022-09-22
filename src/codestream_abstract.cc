@@ -34,7 +34,7 @@ namespace codestream {
 /* while use coarser-grained lock,neednt lock __locker manually. */
 /* lock would be released after exit local environment */
 /* dont use them whith zone-savers were defined over there */
-#define local_coarser_granularity_lock(__locker) \ 
+#define local_coarser_granularity_lock(__locker)		\ 
   std::unique_lock<std::mutex> LOCAL_UNIQUE_MUTEX(__locker##32)(__locker)
 
 
@@ -124,6 +124,7 @@ namespace codestream {
 	enter_state_save_zone;
 	_state_when_error_occur = _state;
 	_state = CODESTREAM_ERROR;
+	notifyStateMigrated();
 	leave_state_save_zone;
       } else {
 	auto f = _code_procedures[which];
@@ -137,6 +138,7 @@ namespace codestream {
       enter_state_save_zone;
       _state_when_error_occur = _state;
       _state = CODESTREAM_ERROR;
+      notifyStateMigrated();
       leave_state_save_zone;
     }
     leave_ip_save_zone;
@@ -156,6 +158,7 @@ namespace codestream {
 
 
     _state_when_error_occur = _state = CODESTREAM_SHUTDOWN;
+    notifyStateMigrated();
     _cerror = NOERROR;
     _ip = _last_ip_start;
   }
@@ -170,6 +173,7 @@ namespace codestream {
       enter_state_save_zone;
       _state_when_error_occur = _state;
       _state = CODESTREAM_ERROR;
+      notifyStateMigrated();
       leave_state_save_zone;
       return;
     }
@@ -177,6 +181,7 @@ namespace codestream {
 
     enter_state_save_zone;
     _state_when_error_occur = _state = CODESTREAM_PROGRESSING;
+    notifyStateMigrated();
     leave_state_save_zone;
 
     std::thread worker1(&Codestream::startCode, this, vec);
@@ -219,6 +224,7 @@ namespace codestream {
       } else {
 	enter_state_save_zone;
 	_state = CODESTREAM_SHUTDOWN;
+	notifyStateMigrated();
 	leave_state_save_zone;
       }
 
@@ -247,6 +253,7 @@ namespace codestream {
       enter_state_save_zone;
       _state_when_error_occur = _state;
       _state = CODESTREAM_ERROR;
+      notifyStateMigrated();
       leave_state_save_zone;
       return;
     }
@@ -261,6 +268,7 @@ namespace codestream {
       enter_state_save_zone;
       _state_when_error_occur = _state;
       _state = CODESTREAM_ERROR;
+      notifyStateMigrated();
       leave_state_save_zone;
       return;
     }
@@ -269,6 +277,7 @@ namespace codestream {
     if (this->is_processing()) {	// try to stop coding
       enter_state_save_zone;
       _state = CODESTREAM_SUSPEND;
+      notifyStateMigrated();
       leave_state_save_zone;
     }
   }
@@ -286,6 +295,7 @@ namespace codestream {
       enter_state_save_zone;
       _state_when_error_occur = _state;
       _state = CODESTREAM_ERROR;
+      notifyStateMigrated();
       leave_state_save_zone;
       return;
     }
@@ -295,10 +305,12 @@ namespace codestream {
     enter_state_save_zone;
     if (_state == CODESTREAM_SUSPEND) {
       _state = CODESTREAM_PROGRESSING;
+      notifyStateMigrated();
       _work_condition.notify_one();
     } else {
       _state_when_error_occur = _state;
       _state = CODESTREAM_ERROR;
+      notifyStateMigrated();
       enter_foe_save_zone;
       _cerror = ERROR_RECOVERFAILED;
       leave_foe_save_zone;
@@ -429,6 +441,7 @@ namespace codestream {
 
       case ERROR_NOINIT:
 	_state_when_error_occur = _state = CODESTREAM_SHUTDOWN;
+	notifyStateMigrated();
 	_cerror = NOERROR;
 	break;
 
@@ -436,22 +449,26 @@ namespace codestream {
 	/* if failed in install or uninstall,should suspend system */
       case ERROR_INSTALLPROCFAILED:
 	_state = CODESTREAM_SUSPEND;
+	notifyStateMigrated();
 	_cerror = NOERROR;
 	break;
 
       case ERROR_UNINSTALLPROCFAILED:
 	_state = CODESTREAM_SUSPEND;
+	notifyStateMigrated();
 	_cerror = NOERROR;
 	break;
 
 	/* suspendfailed and recoverfailed,may be system not in a properly state */
       case ERROR_SUSPENDFAILED:
 	_state = _state_when_error_occur;
+	notifyStateMigrated();
 	_cerror = NOERROR;
 	break;
 
       case ERROR_RECOVERFAILED:
 	_state = _state_when_error_occur;
+	notifyStateMigrated();
 	_cerror = NOERROR;
 	break;
 
@@ -461,6 +478,12 @@ namespace codestream {
 
     default:;	/* do nothing */
     }
+  }
+
+  void Codestream::waitForStateMove(void) {
+    std::mutex LOCAL_UNIQUE_MUTEX(_waitforstatemove);
+    std::unique_lock<std::mutex> LOCAL_UNIQUE_MUTEX(_wfsm_unique)(LOCAL_UNIQUE_MUTEX(_waitforstatemove));
+    _state_migrated_condition.wait(LOCAL_UNIQUE_MUTEX(_wfsm_unique));	// wait notification
   }
 
 }

@@ -82,12 +82,13 @@ namespace codestream {
 
     void resetCodestream(void);
 
-
     // If want to lock _flag_error_mutex, _ip_mutex, _state_mutex,
     // have to lock them in the order is :
     //   _state_mutex -> _ip_mutex -> _flag_error_mutex
     // unlock them in opposite order.
 
+    std::condition_variable _state_migrated_condition;
+    void notifyStateMigrated(void) { _state_migrated_condition.notify_one(); }
 
   public:
 
@@ -117,6 +118,8 @@ namespace codestream {
     bool is_suspend(void);
     bool is_shutdown(void);
     bool is_execsuccess(void);
+
+    void waitForStateMove(void);
 
 
   };

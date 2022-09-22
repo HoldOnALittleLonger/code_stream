@@ -149,7 +149,7 @@ Develop environment:
 
 Debug or Other:
       	 state and flag is so chaotic. have to change design between them. (Finished)
-	 add new feature that let controller enter sleeping until system state was changed. (TODO)
+	 add new feature that let controller enter sleeping until system state was changed. (Finished)
 	     // This feature should useful to wait state moving in a cycle
 
 

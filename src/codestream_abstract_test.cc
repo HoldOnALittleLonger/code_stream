@@ -47,10 +47,15 @@ int main(void) {
 
   }
 
+  sleep(3);
   cds.restartCode();
  codestream_processing:
-  while (!cds.is_shutdown()) {
-    std::cout<<"wait task done"<<std::endl;
+  while (1) {
+    cds.waitForStateMove();
+    if (cds.is_shutdown()) {
+      std::cout<<"wait task done"<<std::endl;
+      break;
+    }
     sleep(1);
   }
   cdsret = cds.processStateExplain();
