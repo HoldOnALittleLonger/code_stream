@@ -10,6 +10,8 @@
 #include<cstddef>
 #include<cstring>
 #include<concepts>
+#include<string>
+#include<exception>
 
 
 namespace otm {
@@ -18,8 +20,8 @@ namespace otm {
 
   struct one_two_map {
 
-#define Q_TEXT "XJwd!fGZib<l,)Opq|(tuvCayhSnERkm"
-#define R_TEXT "xbedPfvhSzW+-1m}?@#tQ&c(%Hsq;a<>"
+#define R_TEXT "XJwd!fGZib<l,)Opq|(tuvCayhSnERkm"
+#define Q_TEXT "xbedPfvhSzW+-1m}?@#tQ&c(%Hsq;a<>"
 
     const char *_const_q_text;
     const char *_const_r_text;
@@ -29,13 +31,33 @@ namespace otm {
     size_t _text_length;
     size_t _division;
     unsigned short _resort;
-    unsigned short _if_inited;
     
-    one_two_map() : _const_q_text(Q_TEXT), _const_r_text(R_TEXT) {
-    }
-    one_two_map(unsigned short sort_distance) : _const_q_text(Q_TEXT), _const_r_text(R_TEXT) {
+    one_two_map() noexcept(false) : _const_q_text(Q_TEXT), _const_r_text(R_TEXT) {
+      size_t text_length(0);
 
+      // copy keyword string.
+      text_length = strlen(_const_q_text);
+      _q_text = new char[text_length];
+      if (!_q_text)
+	throw std::bad_exception;
+      strncpy(_q_text, _const_q_text, text_length);
+      text_length = strlen(_const_r_text);
+      _r_text = new char[text_length];
+      if (!_r_text)
+	throw std::bad_exception;
+      strncpy(_r_text, _const_r_text, text_length);
+
+      // set env
+      _division = _text_length = text_length;
+      _scale = 7;
+      _resort = 0;
     }
+    one_two_map(unsigned short sort_distance) noexcept(false) : _const_q_text(Q_TEXT), _const_r_text(R_TEXT) {
+      one_two_map::one_two_map();
+      _resort = sort_distance;
+    }
+    one_two_map(const struct one_two_map &otm) =delete;
+    one_two_map(struct one_two_map &&otm) =delete;
 
 #undef Q_TEXT
 #undef R_TEXT
@@ -47,7 +69,6 @@ namespace otm {
 	delete[] _r_text, _r_text = nullptr;
     }
 
-    void initOTM(void);
     void sortHashList(void);
     void setResortKey(unsigned short x);
     ssize_t otmEncode(const char *plaintext, size_t plaintext_length,
@@ -87,10 +108,10 @@ namespace base64 {
     /* parts */
     unsigned short getIndexForC(char c);
     char *nextAddress(char *p, short displacement);
-    char first_of(char *segment);
-    char second_of(char *segment);
-    char third_of(char *segment);
-    char fourth_of(char *segment);
+    char first_of(const char *segment);
+    char second_of(const char *segment);
+    char third_of(const char *segment);
+    char fourth_of(const char *segment);
     
     ssize_t base64Encode(const char *plaintext, size_t plaintext_length,
 			 char *ciphertext, size_t ciphertext_size);

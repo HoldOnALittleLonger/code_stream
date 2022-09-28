@@ -119,6 +119,14 @@ Structure:
 
 	// the time to call installProcedure() must lock the _ip_mutext, call uninstallProcedure() is alike to that.
 
+	#HEADFILE
+	<operation_definition.h>
+		All procedure objects would be declared in the file.So the file might has several namespace definitions.
+		And also,the procedure wrapper should be declared in the same file.
+		Definitions of procedures should be defined in file <operation_definition.cc> #tcc definition would be excepted
+
+
+
 Logic order:
 	user execute binary file with properly command sequence.
 	program create Codestream class.
