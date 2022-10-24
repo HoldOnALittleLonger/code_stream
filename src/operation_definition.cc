@@ -97,9 +97,9 @@ namespace otm {
     
     for (unsigned short q(0), r(1); r < ciphertext_length; q += 2, r += 2) {
       // quotient
-      quotient_value = position(ciphertext(q), this->_q_text);
+      quotient_value = position(ciphertext[q], this->_q_text);
       // remainder
-      remainder_value = position(ciphertext(r), this->_r_text);
+      remainder_value = position(ciphertext[r], this->_r_text);
       plaintext[plaintext_index++] = (quotient_value * _division + remainder_value) / _scale;
     }
 
@@ -120,11 +120,6 @@ namespace base64 {
       ++i;
     }
     return i;
-  }
-  
-  inline
-  char * base64_coding::nextAddress(char *p, short displacement) {
-    return p + displacement;
   }
   
   inline
@@ -185,7 +180,7 @@ namespace base64 {
     
     entry = temp_buffer;
     ciphertext_index = 0;
-    // main algothrim
+    // main algorithm
     for (unsigned short iterator(0), map_index(0); iterator < quotient_value; ++iterator) {
       first = first_of(entry);
       second = second_of(entry);
@@ -251,8 +246,8 @@ namespace base64 {
 
     entry = temp_buffer;
     plaintext_index = 0;
-    // main algothrim
-    for (unsigned short count(0); count < quotient; ++count) {
+    // main algorithm
+    for (unsigned short count(0); count < quotient_value; ++count) {
       first = first_of(entry);
       second = second_of(entry);
       third = third_of(entry);

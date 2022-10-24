@@ -32,28 +32,46 @@ namespace otm {
     size_t _division;
     unsigned short _resort;
     
-    one_two_map() noexcept(false) : _const_q_text(Q_TEXT), _const_r_text(R_TEXT) {
+    one_two_map() noexcept(false) : _const_q_text((const char *)Q_TEXT), _const_r_text((const char *)R_TEXT), _scale(7) {
       size_t text_length(0);
 
       // copy keyword string.
       text_length = strlen(_const_q_text);
       _q_text = new char[text_length];
       if (!_q_text)
-	throw std::bad_exception;
+	throw std::bad_exception();
       strncpy(_q_text, _const_q_text, text_length);
       text_length = strlen(_const_r_text);
       _r_text = new char[text_length];
       if (!_r_text)
-	throw std::bad_exception;
+	throw std::bad_exception();
       strncpy(_r_text, _const_r_text, text_length);
 
       // set env
       _division = _text_length = text_length;
-      _scale = 7;
       _resort = 0;
     }
-    one_two_map(unsigned short sort_distance) noexcept(false) : _const_q_text(Q_TEXT), _const_r_text(R_TEXT) {
-      one_two_map::one_two_map();
+    one_two_map(unsigned short sort_distance) noexcept(false) : _const_q_text((const char *)Q_TEXT),
+      _const_r_text((const char *)R_TEXT),
+      _scale(7)
+    {
+      size_t text_length(0);
+
+      // copy keyword string.
+      text_length = strlen(_const_q_text);
+      _q_text = new char[text_length];
+      if (!_q_text)
+	throw std::bad_exception();
+      strncpy(_q_text, _const_q_text, text_length);
+      text_length = strlen(_const_r_text);
+      _r_text = new char[text_length];
+      if (!_r_text)
+	throw std::bad_exception();
+      strncpy(_r_text, _const_r_text, text_length);
+
+      // set env
+      _division = _text_length = text_length;
+
       _resort = sort_distance;
     }
     one_two_map(const struct one_two_map &otm) =delete;
@@ -77,7 +95,7 @@ namespace otm {
 		      char *plaintext, size_t plaintext_size);
 
     template<typename T>
-    requires (T &arg, unsigned short p) {
+    requires requires (T &arg, unsigned short p) {
       arg * p;
       p * arg;
     }
@@ -107,7 +125,15 @@ namespace base64 {
 
     /* parts */
     unsigned short getIndexForC(char c);
-    char *nextAddress(char *p, short displacement);
+    template<typename T>
+    requires requires(T *arg, int x) {
+      arg + x;
+      x + arg;
+    }
+    T *nextAddress(T *p, short displacement)
+    {
+      return p + displacement;
+    }
     char first_of(const char *segment);
     char second_of(const char *segment);
     char third_of(const char *segment);
