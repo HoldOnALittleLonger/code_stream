@@ -32,26 +32,8 @@ namespace otm {
     size_t _division;
     unsigned short _resort;
     
-    one_two_map() noexcept(false) : _const_q_text((const char *)Q_TEXT), _const_r_text((const char *)R_TEXT), _scale(7) {
-      size_t text_length(0);
-
-      // copy keyword string.
-      text_length = strlen(_const_q_text);
-      _q_text = new char[text_length];
-      if (!_q_text)
-	throw std::bad_exception();
-      strncpy(_q_text, _const_q_text, text_length);
-      text_length = strlen(_const_r_text);
-      _r_text = new char[text_length];
-      if (!_r_text)
-	throw std::bad_exception();
-      strncpy(_r_text, _const_r_text, text_length);
-
-      // set env
-      _division = _text_length = text_length;
-      _resort = 0;
-    }
-    one_two_map(unsigned short sort_distance) noexcept(false) : _const_q_text((const char *)Q_TEXT),
+    one_two_map() noexcept(false)
+    : _const_q_text((const char *)Q_TEXT),
       _const_r_text((const char *)R_TEXT),
       _scale(7)
     {
@@ -71,16 +53,17 @@ namespace otm {
 
       // set env
       _division = _text_length = text_length;
-
-      _resort = sort_distance;
+      _resort = 0;
     }
+
     one_two_map(const struct one_two_map &otm) =delete;
     one_two_map(struct one_two_map &&otm) =delete;
 
 #undef Q_TEXT
 #undef R_TEXT
 
-    ~one_two_map() {
+    ~one_two_map()
+    {
       if (_q_text)
 	delete[] _q_text, _q_text = nullptr;
       if (_r_text)
@@ -94,12 +77,15 @@ namespace otm {
     ssize_t otmDecode(const char *ciphertext, size_t ciphertext_length,
 		      char *plaintext, size_t plaintext_size);
 
+    //  scaleElement - scale @x by multiple _scale
+    //    @x : value to scale
     template<typename T>
     requires requires (T &arg, unsigned short p) {
       arg * p;
       p * arg;
     }
-    constexpr T scaleElement(T x) {
+    constexpr T scaleElement(T x) 
+    {
       return (x * _scale);
     }
   
@@ -125,6 +111,10 @@ namespace base64 {
 
     /* parts */
     unsigned short getIndexForC(char c);
+
+    //  nextAddress - return next pointer 
+    //    @p : the pointer for current position
+    //    @displacement: displacement for next address
     template<typename T>
     requires requires(T *arg, int x) {
       arg + x;

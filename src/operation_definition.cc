@@ -2,7 +2,9 @@
 
 namespace otm {
 
-  void one_two_map::sortHashList(void) {
+  //  sortHashList - sort order for hash listes
+  void one_two_map::sortHashList(void)
+  {
     unsigned short int index(0);
     char i = '\0',j = '\0';
 
@@ -41,14 +43,26 @@ namespace otm {
 
   }
 
-  void one_two_map::setResortKey(unsigned short x) {
+  //  setResortKey - set resort key.
+  //    # method would automaticaly resort order for hash listes.
+  void one_two_map::setResortKey(unsigned short x)
+  {
     decltype(x) i = x * 61;
     _resort = i - (i / _text_length) * _text_length;
     this->sortHashList();
   }
 
+  //  otmEncode - main encode method of otm.
+  //    @plaintext : plaintext.
+  //    @plaintext_length : how long for @plaintext.
+  //    @ciphertext : ciphertext buffer.
+  //    @ciphertext_size : size of memory space for @ciphertext.
+  //
+  //    return - number of characters were coded.
+
   ssize_t one_two_map::otmEncode(const char *plaintext, size_t plaintext_length,
-				 char *ciphertext, size_t ciphertext_size) {
+				 char *ciphertext, size_t ciphertext_size)
+  {
     long int after_scale(0);
     unsigned quotient_value(0), remainder_value(0);
     ssize_t coded(0);
@@ -73,6 +87,13 @@ namespace otm {
     return coded;
   }
 
+  //  otmDecode - main decode method of otm.
+  //    @ciphertext : ciphertext.
+  //    @ciphertext_length : how long for @ciphertext.
+  //    @plaintext: plaintext buffer.
+  //    @plaintext_size : size of memory space for @plaintext.
+  //
+  //    return - number of characters were decoded.
   ssize_t one_two_map::otmDecode(const char *ciphertext, size_t ciphertext_length,
 				 char *plaintext, size_t plaintext_size)
   {
@@ -112,7 +133,12 @@ namespace otm {
 
 namespace base64 {
 
-  unsigned short base64_coding::getIndexForC(char c) {
+  //  getIndexForC - find position of @c in base64 string.
+  //    @c : the character.
+  //
+  //    return - index of c.
+  unsigned short base64_coding::getIndexForC(char c)
+  {
     unsigned short i(0);
     for (const char *iterator(_base64_mapping); *iterator != '\0'; ++iterator) {
       if (*iterator == c)
@@ -122,26 +148,52 @@ namespace base64 {
     return i;
   }
   
+  //  first_of - first element in segment.
+  //    @segment : a pointer point to segement.
+  //
+  //    return - the first element.
   inline
-  char base64_coding::first_of(const char *segment) {
+  char base64_coding::first_of(const char *segment)
+  {
     return *segment;
   }
 
+  //  second_of - second element in segment.
+  //    @segment : a pointer point to segment.
+  //
+  //    return - the second element.
   inline
   char base64_coding::second_of(const char *segment) {
     return *(segment + 1);
   }
 
+  //  third_of - third element in segment.
+  //    @segment : a pointer point to segment.
+  //
+  //    return - the third element.
   inline
-  char base64_coding::third_of(const char *segment) {
+  char base64_coding::third_of(const char *segment)
+  {
     return *(segment + 2);
   }
 
+  //  fourth_of - fourth element in segment.
+  //    @segment : a pointer point to segment.
+  //
+  //    return - the fourth element.
   inline 
-  char base64_coding::fourth_of(const char *segment) {
+  char base64_coding::fourth_of(const char *segment)
+  {
     return *(segment + 3);
   }
 
+  //  base64Encode - main method do base64 coding.
+  //    @plaintext : plaintext.
+  //    @plaintext_length : how long for @plaintext.
+  //    @ciphertext : ciphertext buffer.
+  //    @ciphertext_size : size of memory space for @ciphertext.
+  //
+  //    return - number of characters were encoded.
   ssize_t base64_coding::base64Encode(const char *plaintext, size_t plaintext_length,
 				      char *ciphertext, size_t ciphertext_size)
   {
@@ -202,7 +254,7 @@ namespace base64 {
     }
     // hint that how many zero were appended.
     for (unsigned short count(0), index(ciphertext_index - 1);
-	 !remainder_value && count < 3 - remainder_value;
+	 remainder_value && count < 3 - remainder_value;
 	 ++count)
       ciphertext[index--] = '=';
     
@@ -211,6 +263,13 @@ namespace base64 {
     return ciphertext_index;
   }
 
+  //  base64Decode - main method do base64 decoding.
+  //    @ciphertext : ciphertext buffer.
+  //    @ciphertext_length : how long for @ciphertext.
+  //    @plaintext : plaintext.
+  //    @plaintext_size : size of memory space for @plaintext.
+  //
+  //    return - number of characters were decoded.
   ssize_t base64_coding::base64Decode(const char *ciphertext, size_t ciphertext_length,
 				      char *plaintext, size_t plaintext_size)
   {
@@ -230,7 +289,7 @@ namespace base64 {
     if (plaintext_size < (quotient_value * 3))
       return -1;
 
-    if (!remainder_value)    // ciphertext may be not a properly base64 data string
+    if (remainder_value)    // ciphertext may be not a properly base64 data string
       return -1;
 
     temp_buffer = new char[ciphertext_length];

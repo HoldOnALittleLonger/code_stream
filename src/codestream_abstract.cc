@@ -38,7 +38,8 @@ namespace codestream {
   std::unique_lock<std::mutex> LOCAL_UNIQUE_MUTEX(__locker##32)(__locker)
 
 
-  Codestream::Codestream() {
+  Codestream::Codestream()
+  {
     /* default constructor */
 
     enter_foe_save_zone;
@@ -61,29 +62,38 @@ namespace codestream {
 
   }
 
-  Codestream::~Codestream() {
+  Codestream::~Codestream()
+  {
     enter_ip_save_zone;
     _code_procedures.clear();
     leave_ip_save_zone;
   }
-
-  opip Codestream::getProgress(void) {
+  //  getProgress - return progressing for code system
+  opip Codestream::getProgress(void)
+  {
     local_coarser_granularity_lock(_ip_mutex);
     return _ip;
   }
 
-  void *Codestream::getLastResult(void) {
+  //  getLastResult - return the latest result made by procedure
+  void *Codestream::getLastResult(void)
+  {
     local_coarser_granularity_lock(_state_mutex);
     return _last_op_ret;
   }
-
-  opci Codestream::getOpChainSize(void) {
+  
+  //  getOpChainSize - return size of operations were installed
+  opci Codestream::getOpChainSize(void)
+  {
     local_coarser_granularity_lock(_ip_mutex);
     return _cp_end;
   }
 
-  void Codestream::installProcedure(std::function<void *(void *)> &&f) {
-  
+  //  installProcedure - install a procedure into op-chain.
+  //    # install methods would not use ERROR CODE.(even the code was defined)
+  //    @f : function object.
+  void Codestream::installProcedure(std::function<void *(void *)> &&f)
+  {
     enter_ip_save_zone;
     _code_procedures.emplace_back(f);
     _ip_end = _cp_end = _code_procedures.size();        // update pos records.
@@ -97,8 +107,11 @@ namespace codestream {
 
   }
 
-  void Codestream::installProcedure(std::function<void *(void *)> &&f, aindex pos) {
-
+  //  installProcedure - overload version this can special position of chain to install.
+  //    @f : function object.
+  //    @pos : position to install.
+  void Codestream::installProcedure(std::function<void *(void *)> &&f, aindex pos)
+  {
     enter_ip_save_zone;
     auto vector_it(_code_procedures.begin());
     vector_it += ((pos == 0) ? 0 : pos - 1);	// -1 cant be vector index
@@ -113,8 +126,11 @@ namespace codestream {
 
   }
 
-  void Codestream::uninstallProcedure(aindex which) {
-
+  //  uninstallProcedure - uninstall a procedure from chain.
+  //    # method would not recycle memory for it,just set to NULL as well.
+  //    @which : the postion of procedure which will be uninstalled.
+  void Codestream::uninstallProcedure(aindex which)
+  {
     enter_ip_save_zone;
     if (which < _cp_end)
       if (_code_procedures.at(which) == nullptr) {
@@ -145,25 +161,32 @@ namespace codestream {
 
   }
 
-  void Codestream::setStartPoint(aindex i) {
+  //  setStartPoint - specify where to start
+  //    @i : position to start
+  void Codestream::setStartPoint(aindex i)
+  {
     local_coarser_granularity_lock(_ip_mutex);
     if (i >= _ip_start && i < _ip_end)
       _last_ip_start = _ip = i;
   }
 
-  void Codestream::resetCodestream(void) {
+  //  resetCodestream - reset system states.
+  void Codestream::resetCodestream(void)
+  {
     local_coarser_granularity_lock(_state_mutex);
     local_coarser_granularity_lock(_ip_mutex);
     local_coarser_granularity_lock(_flag_error_mutex);
-
-
     _state_when_error_occur = _state = CODESTREAM_SHUTDOWN;
     notifyStateMigrated();
     _cerror = NOERROR;
     _ip = _last_ip_start;
   }
 
-  void Codestream::coding(void *vec) {
+  //  coding - outside interface to start coding.
+  //    @vec : vec should be a data buffer which would used by procedures.
+  //    !! method will reset system at each time !!
+  void Codestream::coding(void *vec)
+  {
     resetCodestream();
 
     /* codestream have to init */
@@ -189,7 +212,10 @@ namespace codestream {
   }
 
 
-  void Codestream::startCode(void *vec) {
+  //  startCode - main coding method.
+  //    @vec : data buffer which would be used by procedures.
+  void Codestream::startCode(void *vec)
+  {
     std::function<void *(void *)> f(nullptr);
     void *ret_of_f(vec);
 
@@ -242,11 +268,9 @@ namespace codestream {
 
   }
 
-
-  // dont call stop and restart span thread bounder
-
-  void Codestream::stopCode(void) {
-
+  //  stopCode - stop coding.
+  void Codestream::stopCode(void)
+  {
     enter_foe_save_zone;
     if (!_codestream_flag.test(FLAG_INIT)) {
       _cerror = ERROR_NOINIT;
@@ -258,7 +282,6 @@ namespace codestream {
       return;
     }
     leave_foe_save_zone;
-
 
     enter_ip_save_zone;
     if (_ip >= _ip_end) {        // if _ip > _ip_end, there would no residue procedure have to exec.
@@ -286,8 +309,9 @@ namespace codestream {
   // a1 a2 <stopCode()> a3 a4 <restartCode()> ...
   // and cant invoke get<Function> between them.
 
-  void Codestream::restartCode(void) {
-
+  //  restartCode - restart system after stopped.
+  void Codestream::restartCode(void)
+  {
     /* check if program had init */
     enter_foe_save_zone;
     if (!_codestream_flag.test(FLAG_INIT)) {
@@ -300,7 +324,6 @@ namespace codestream {
       return;
     }
     leave_foe_save_zone;
-
 
     enter_state_save_zone;
     if (_state == CODESTREAM_SUSPEND) {
@@ -318,7 +341,9 @@ namespace codestream {
     leave_state_save_zone;
   }
 
-  void Codestream::toggleOpDirection(void) {
+  //  toggleOpDirection - switch direction while coding.
+  void Codestream::toggleOpDirection(void)
+  {
       local_coarser_granularity_lock(_flag_error_mutex);
       if (_codestream_flag.test(FLAG_OPDIRECTION))
 	_codestream_flag.reset(FLAG_OPDIRECTION);
@@ -326,27 +351,37 @@ namespace codestream {
 	_codestream_flag.set(FLAG_OPDIRECTION);
   }
   
-  bool Codestream::is_processing(void) {
+  //  is_processing - return true if system is coding,return false if it is not.
+  bool Codestream::is_processing(void)
+  {
     local_coarser_granularity_lock(_state_mutex);
     return _state == CODESTREAM_PROGRESSING;
   }
 
-  bool Codestream::is_suspend(void) {
+  //  is_suspend - return true if system is suspended,return false if it is not.
+  bool Codestream::is_suspend(void)
+  {
     local_coarser_granularity_lock(_state_mutex);
     return _state == CODESTREAM_SUSPEND;
   }
 
-  bool Codestream::is_shutdown(void) {
+  //  is_shutdown - return true if system is shutdown,return false if it is not.
+  bool Codestream::is_shutdown(void)
+  {
     local_coarser_granularity_lock(_state_mutex);
     return _state == CODESTREAM_SHUTDOWN;
   }
 
-  bool Codestream::is_execsuccess(void) {
+  //  is_execsuccess - return true if latest exec was succeed,return false if it was not.
+  bool Codestream::is_execsuccess(void)
+  {
     local_coarser_granularity_lock(_flag_error_mutex);
     return _cerror == NOERROR;
   }
 
-  std::string Codestream::processStateExplain(void) {
+  //  processStateExplain - this method used to covert status to a explain text.
+  std::string Codestream::processStateExplain(void)
+  {
     local_coarser_granularity_lock(_state_mutex);
     std::string msg("0000");
     switch (_state) {
@@ -380,7 +415,9 @@ namespace codestream {
     return msg;
   }
 
-  std::string Codestream::processErrorExplain(void) {
+  //  processErrorExplain - this method used to covert error code to a explain text.
+  std::string Codestream::processErrorExplain(void)
+  {
     local_coarser_granularity_lock(_flag_error_mutex);
     std::string msg("0000");
 
@@ -424,7 +461,9 @@ namespace codestream {
     return msg;
   }
 
-  void Codestream::programErrorRecover(void) noexcept(false){
+  //  programErrorRecover - try to recover system after it was strunk.
+  void Codestream::programErrorRecover(void) noexcept(false)
+  {
     local_coarser_granularity_lock(_state_mutex);
     local_coarser_granularity_lock(_ip_mutex);
     local_coarser_granularity_lock(_flag_error_mutex);
@@ -480,7 +519,9 @@ namespace codestream {
     }
   }
 
-  void Codestream::waitForStateMove(void) {
+  //  waitForStateMove - outside interface for event driving.
+  void Codestream::waitForStateMove(void)
+  {
     std::mutex LOCAL_UNIQUE_MUTEX(_waitforstatemove);
     std::unique_lock<std::mutex> LOCAL_UNIQUE_MUTEX(_wfsm_unique)(LOCAL_UNIQUE_MUTEX(_waitforstatemove));
     _state_migrated_condition.wait(LOCAL_UNIQUE_MUTEX(_wfsm_unique));	// wait notification
