@@ -108,12 +108,12 @@ Structure:
 	//!! to release them in opposite order.
 
 
-	struct op_arg_ret {
-	       void 	  *b1;		/* b1 should point to a buffer which would contains src data */
-	       size_t	  b1_size;	/* b1_size is the size of data in b1 */
-	       void	  *b2;		/* b2 should point to a buffer which would contains des data */
-	       size_t	  b2_size;	/* b2_size is the size of data in b2 */
-	};
+	//struct op_arg_ret {
+	//       void 	  *b1;		/* b1 should point to a buffer which would contains src data */
+	//       size_t	  b1_size;	/* b1_size is the size of data in b1 */
+	//       void	  *b2;		/* b2 should point to a buffer which would contains des data */
+	//       size_t	  b2_size;	/* b2_size is the size of data in b2 */
+	//};
 					/* at calling time,b1_size should be the length of data in *b1 */
 					/* at calling time,b2_size should be the length of *b2 */
 
@@ -125,7 +125,50 @@ Structure:
 		And also,the procedure wrapper should be declared in the same file.
 		Definitions of procedures should be defined in file <operation_definition.cc> #tcc definition would be excepted
 
+	work procedure objects :
+	     struct one_two_map;	//  coding algothrim object
+	     struct base64_coding;	//  coding algothrim object
 
+	     one_two_map {
+	     	map one byte to two bytes.
+		port from <cryptor.git> of @Takanashi-Rikka-O
+	     }
+
+	     base64_coding {
+	     	base64 coding algothrim.
+		port from <cryptor.git> of @Takanashi-Rikka-O
+	     }
+
+	#HEADFILE
+	<ops_wrapper.h>
+		This file should contains some wrappers for work-procedures to provide truly working on code_stream.
+		main file doesnt need to knows archieve detail to work-procedures,just uses wrappers as well.
+
+		namespace : ops_wrapper
+
+		struct general_coding_struct {
+		       char *buff1;
+		       size_t length_of_buff1;
+		       size_t size_of_buff1;
+
+		       char *buff2;
+		       size_t length_of_buff2;
+		       size_t size_of_buff2;
+		};
+		using gcstruct = struct general_coding_struct;
+
+		//  wrapper would decides how to use gcstruct on work-procedures.
+
+		void *ops_wrapper_otm_encode(void *);
+		void *ops_wrapper_otm_decode(void *);
+		void *ops_wrapper_base64_encode(void *);
+		void *ops_wrapper_base64_decode(void *);
+
+		//  because there is not has category tower,have to define
+		//  combination version for these functions as well.
+
+		void ops_wrapper_init(void);    //  initialize all ops_wrappers.
+		     				//  it init some objects and another things.
 
 Logic order:
 	user execute binary file with properly command sequence.
@@ -158,7 +201,7 @@ Develop environment:
 Debug or Other:
       	 state and flag is so chaotic. have to change design between them. (Finished)
 	 add new feature that let controller enter sleeping until system state was changed. (Finished)
-	     // This feature should useful to wait state moving in a cycle
+	 Design wrapper for ops.(Finished) Revise README.(TODO)
 
 
 Complement:

@@ -25,6 +25,8 @@ codestream_abstract.o: codestream_abstract.cc
 
 ops_def.o: operation_definition.cc
 ops_test.o: ops_test.cc
+ops_wrapper.o: ops_wrapper.cc operation_definition.cc
+ops_wrapper_test.o: ops_wrapper_test.cc
 
 .PHONY: catm clean ops_test
 catm: codestream_abstract_test.o codestream_abstract.o
