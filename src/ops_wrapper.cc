@@ -1,13 +1,7 @@
 #include"ops_wrapper.h"
 #include"operation_definition.h"
 
-static unsigned short ops_wrapper_init_record = 0;
 
-//  cwer - code wrapper execute record.
-//    records which ops object was worked in last time.
-static unsigned short cwer = 0;
-#define CWER_OTM 0
-#define CWER_BASE64 1
 
 namespace ops {
   static otm::otm_object *otm_bewrapped = nullptr;
@@ -63,6 +57,15 @@ namespace owa {
 
 
 namespace ops_wrapper {
+
+  //  let ops_wrapper_init() just be invoked at onece.
+  static unsigned short ops_wrapper_init_record = 0;
+
+  //  cwer - code wrapper execute record.
+  //    records which ops object was worked in last time.
+  static unsigned short cwer = 0;
+#define CWER_OTM 0
+#define CWER_BASE64 1
 
   static union gc_keys_ul gckul;
 
@@ -152,7 +155,7 @@ namespace ops_wrapper {
   }
 
   //  ops_wrapper_gcwt - general code procedure work together 
-  //    *gcs : @gcs should be a pointer returned by any code procedure.
+  //    @gcs : @gcs should be a pointer returned by any code procedure.
   //    return - return @gcs after do something for work-together.
   void *ops_wrapper_gcwt(void *gcs)
   {

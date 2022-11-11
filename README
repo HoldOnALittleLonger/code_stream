@@ -159,16 +159,82 @@ Structure:
 
 		//  wrapper would decides how to use gcstruct on work-procedures.
 
-		void *ops_wrapper_otm_encode(void *);
-		void *ops_wrapper_otm_decode(void *);
-		void *ops_wrapper_base64_encode(void *);
-		void *ops_wrapper_base64_decode(void *);
+		//  encode wrapper for otm
+		void *ops_wrapper_otm_encode(void *gcs);
 
-		//  because there is not has category tower,have to define
-		//  combination version for these functions as well.
+		//  decode wrapper for otm
+		void *ops_wrapper_otm_decode(void *gcs);
 
-		void ops_wrapper_init(void);    //  initialize all ops_wrappers.
-		     				//  it init some objects and another things.
+		//  encode wrapper for base64
+		void *ops_wrapper_base64_encode(void *gcs);
+
+		//  decode wrapper for base64
+		void *ops_wrapper_base64_decode(void *gcs);
+
+		//  work together.
+		//  this function is used to combine code functions each using
+		//  gcstruct.
+		//  it should in the working chain :
+		//    code1 -> ops_wrapper_gcwt -> code2
+		//    decode1 -> ops_wrapper_gcwt -> decode2
+		//    #  between coding-object1 and coing-object2
+		void *ops_wrapper_gcwt(void *gcs);
+
+		//  gerneral key-values for unsigned long.		
+		union gc_keys_ul {
+		      unsigned long otm_key;
+		      //  unsigned long base64_key;
+		      //  ... more
+		};
+
+		void ops_wrapper_init(void) noexcept(false);    //  initialize all ops_wrappers.
+		     			    			//  it init some objects and another things.
+								//  if there occurs any exception,init() will throw it but doesnt catch it as well.
+
+		void ops_wrapper_otm_key(unsigned short);	//  set key-value for otm.
+		     				  		//  init-function will use the key-value to
+								//  init target object.
+
+	#CODEFILE
+	<ops_wrapper.cc>
+		it contains the definitions of functions and other things.
+	
+		namespace : ops
+
+		//  the objects			  
+		static otm::otm_object *otm_bewrapped = nullptr;
+		static base64::base64_object *base64_bewrapped = nullptr;
+		
+		//  init function for otm.
+		//  it would be invoked in ops_wrapper_init() with
+		//  gc_keys_ul.otm_key.
+		static void otm_init(unsigned short x);
+
+
+		namespace : owa 
+		//  all ops_wrapped aid function should in this namespace.
+
+		//  the main work-together combine function
+		void ow_gcs_all_wt(gcstruct *gcs);
+
+		namespace : ops_wrapper
+
+		//  let ops_wrapper_init() just be invoked at onece.
+		static unsigned short ops_wrapper_init_record = 0;
+
+		static unsigned short cwer = 0;  //  record key.
+		#define CWER_OTM 0
+		#define CWER_BASE64 1
+		
+		
+		//  constructure all objects that be wrapped by ops_wrapper.
+		static void construct_ops_wrappers(void);
+
+		//  check if the objects realy be existed,that means
+		//  succeed to create them.
+		static void if_wrappers_exist(void) noexcept(false);
+
+		... other definitions.
 
 Logic order:
 	user execute binary file with properly command sequence.
@@ -201,7 +267,7 @@ Develop environment:
 Debug or Other:
       	 state and flag is so chaotic. have to change design between them. (Finished)
 	 add new feature that let controller enter sleeping until system state was changed. (Finished)
-	 Design wrapper for ops.(Finished) Revise README.(TODO)
+	 Design wrapper for ops.(Finished) Revise README.(Finished)
 
 
 Complement:

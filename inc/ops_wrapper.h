@@ -4,11 +4,11 @@
 #include<cstddef>
 #include<exception>
 
+//  OTM_INIT_EXCEPT - occur exception while init otm 
 #define OTM_INIT_EXCEPT 1
+
+//  BASE64_INIT_EXCEPT - occur exception while init base64
 #define BASE64_INIT_EXCEPT 2
-
-
-#define CODE_WRAPPERS_NUM 2
 
 namespace ops_wrapper {
 
@@ -49,7 +49,7 @@ namespace ops_wrapper {
   //  gc_keys_ul - unsigned long key-values for general coding.
   union gc_keys_ul {
     unsigned long otm_key;
-//    unsigned long base64_key;
+    //  unsigned long base64_key;
     
     //  ... more
   };
@@ -59,6 +59,9 @@ namespace ops_wrapper {
 
   //  set key for otm.
   void ops_wrapper_otm_key(unsigned short);
+
+  // set key for base64.
+  //  void ops_wrapper_base64_key(unsigned short);
 
 
 }  //  namespace end
