@@ -236,6 +236,97 @@ Structure:
 
 		... other definitions.
 
+	#MAINFILE
+	codestream :
+		The designing of codestream.
+		Support several options for program features.
+		"-k:-e:-d:-h"
+		Every option should as a standalong function wait invoking by main.
+
+		//  codestream_main - Codestream object.
+		Codestream codestream_main;
+
+		//  data_src - a istream pointer.
+		//    #  codestream should point to
+		//    #	   cin | ifstream object
+		istream *data_src;
+
+		//  gcs - general coding structure object.
+		gcstruct gcs;
+
+		//  src_from - where data from.
+		//    #  FFILE  - from file (file path)
+		//    #  FSTDIN - from stdin (-,- means stdin)
+		//    #  FCMD   - from command line ("123...abc..")
+		unsigned short src_from;
+
+		All of option functions should return an int value.
+		0 - true
+		-1 - false
+				
+		//  main_optionf_k - option function for option<k key>.
+		//    @thekey : key value.
+		//    return - 0 or -1
+		main_optionf_k(thekey);   
+
+		//  main_optionf_e - option function for option<e encode>.
+		//    @arg : @arg for encode.
+		//    return - 0 or -1
+		//    #  @arg maybe a path of file,or a string,or data stream from stdin.
+		main_optionf_e(arg);
+
+		//  main_option_d - option function for option<d decode>.
+		//    @arg : @arg for decode.
+		//    return - 0 or -1
+		//    #  @arg maybe a path of file,or a string,or data stream from stdin.
+		main_optionf_d(arg);
+
+		//  main_optionf_h - option function for option<h help>.
+		//   return : void
+		//   #  main_optionf_h() doesnt return anything.
+		main_optionf_h(void);
+		
+		//  main_optionf_f - option function for option<f file>.
+		//    #  this function should just set flag to indicates that
+		//    #  program should interprets the value followed -e to a
+		//    #  file path.
+		main_optionf_f(arg);
+
+		because program maybe receives data from stdin,or reads file,or from user give.
+		for deal with general situation,should make a stream and operates it.
+		
+		s1>  file path
+		     file stream
+		 
+		s2>  stdin
+		     file stream,but it associated to stdin
+
+		s3>  string
+		     string got from user,should create a stream and fill it with the string.
+		
+		//  main_create_stream() - create a stream and return it.
+		//    #  cin is istream object.
+		//    #  ifstream : public basic_istream
+		//    #  this means could use a istream pointer to point cin or ifstream object.
+		main_create_stream(situations);
+
+		//  quesition : how to create a stream and fill it with the string?(TODO)
+		//    write string into stdin,then let the pointer point to cin?
+		//    use cin.putback().
+
+		//  main_coding - read data and output after operations done.
+		main_coding(arg);
+
+		
+		ERROR CODE :
+		      EINVLIDKEY     -  invalid key was given.
+		      EOPTION	     -  unknown option or that option need an argument.
+		      EENCODE	     -  occur error while encode.
+		      EDECODE	     -  occur error while decode.
+		      EFPERMISSION   -  have no permission to access file.
+		      
+		
+
 Logic order:
 	user execute binary file with properly command sequence.
 	program create Codestream class.
@@ -253,6 +344,9 @@ Feature design:
 	
 	-d
 		receive data from input stream and decoding,output result to output stream.
+	
+	-f
+		input from file,this option should has a file-name after it.
 
 	-h
 		print help messages.

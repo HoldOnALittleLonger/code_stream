@@ -14,19 +14,26 @@ vpath %.h ./inc
 %.o:%.cc
 	$(CC) $(CCFLAGS) -o $@ -c $< -Iinc
 
-%.so:$.cc
+%.so:%.cc
 	$(CC) -fPIC -shared -o $@ $< -Iinc
 
 CCFILES += $(wildcard $(foreach cf, $(DIRS), $(cf)/*.cc))
 OBJS := $(patsubst %.cc, %.o, $(CCFILES))
-CLIBS := $(patsubst %, -l%, $(LIBS))
-LIBS := $(patsubst %.o, %.so, $(OBJS))
+LCLIBS := $(patsubst %, -l%, $(CLIBS))
 
-codestream:
+LIBS += libops.so
+LIBS += libopswrapper.so
+LIBS += libcodestream.so
+LLIBS := $(patsubst lib%.so, -l%, $(LIBS))
+
+codestream: $(LIBS) ops_test.o
 	@echo "uncompleted"
-	echo $(LIBS)
 
-.PHONY: catm clean ops_test ops_wrapper_test
+libops.so: operation_definition.cc
+libopswrapper.so: ops_wrapper.cc
+libcodestream.so: codestream_abstract.cc
+
+.PHONY: catm clean ops_test ops_wrapper_test make_libs
 catm: codestream_abstract_test.o codestream_abstract.o
 	$(CC) $(CCFLAGS) -o $@ $^ $(LIBS)
 
