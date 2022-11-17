@@ -240,7 +240,7 @@ Structure:
 	codestream :
 		The designing of codestream.
 		Support several options for program features.
-		"-k:-e:-d:-h"
+		"-k:-e:-d:-fh"
 		Every option should as a standalong function wait invoking by main.
 
 		//  codestream_main - Codestream object.
@@ -253,12 +253,19 @@ Structure:
 
 		//  gcs - general coding structure object.
 		gcstruct gcs;
+		
+		//  if_f_got - flag to indicates -f was given.
+		unsigned char if_f_got;
 
-		//  src_from - where data from.
-		//    #  FFILE  - from file (file path)
-		//    #  FSTDIN - from stdin (-,- means stdin)
-		//    #  FCMD   - from command line ("123...abc..")
-		unsigned short src_from;
+		//  Where Data From?
+		//    #  DFFILE  - from file (file path)
+		//    #  DFSTDIN - from stdin (-,- means stdin)
+		//    #  DFCMD   - from command line ("123...abc..")
+		
+		//  toinstall - an array for function pointer.
+		//    @FTOINSTALL_NUM : how many function would be installed.
+		//                      (default =3)
+		void *(*toinstall[FTOINSTALL_NUM])(void *);
 
 		All of option functions should return an int value.
 		0 - true
@@ -269,17 +276,10 @@ Structure:
 		//    return - 0 or -1
 		main_optionf_k(thekey);   
 
-		//  main_optionf_e - option function for option<e encode>.
-		//    @arg : @arg for encode.
-		//    return - 0 or -1
-		//    #  @arg maybe a path of file,or a string,or data stream from stdin.
-		main_optionf_e(arg);
-
-		//  main_option_d - option function for option<d decode>.
-		//    @arg : @arg for decode.
-		//    return - 0 or -1
-		//    #  @arg maybe a path of file,or a string,or data stream from stdin.
-		main_optionf_d(arg);
+		//  main_optionf_eandd - do some prepare works for encoding or decoding.
+		//    @arg : argument.
+		//    return - 0 or -1.
+		main_optionf_eandd(arg);
 
 		//  main_optionf_h - option function for option<h help>.
 		//   return : void
@@ -317,13 +317,19 @@ Structure:
 		//  main_coding - read data and output after operations done.
 		main_coding(arg);
 
+		//  main_output_error_msg - output error messages to stderr.
+		main_output_error_msg(void);
+
 		
+		//  main_error_code - error code.
+		unsigned short main_error_code;		
 		ERROR CODE :
 		      EINVLIDKEY     -  invalid key was given.
 		      EOPTION	     -  unknown option or that option need an argument.
-		      EENCODE	     -  occur error while encode.
-		      EDECODE	     -  occur error while decode.
+		      ENILP          -  nullptr.
+		      ECODING        -  error occured while coding.
 		      EFPERMISSION   -  have no permission to access file.
+		      ENOE           -  not error.
 		      
 		
 
