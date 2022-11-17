@@ -25,7 +25,7 @@ vpath %.h ./inc
 %.o:%.cc
 	$(CC) $(CCFLAGS) -o $@ -c $< -Iinc
 
-codestream:
+codestream: codestream.o $(LIBS)
 	@echo "uncompleted"
 
 libops.so: operation_definition.cc

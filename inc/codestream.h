@@ -8,14 +8,6 @@
 #include<iostream>
 #include<concepts>
 
-//  DATA SOURCE
-//    FFILE - from file
-//    FSTDIN - from stdin
-//    FCMD - from command line
-#define FFILE  0
-#define FSTDIN 1
-#define FCMD   2
-
 //  OPTION_STRING
 //    -k - key value
 //    -e - encode mode
@@ -27,22 +19,27 @@
 //  ERROR CODE
 //    EINVALIDKEY  - invalid key
 //    EOPTION      - unknown option or use option incorrectly
-//    EENCODE      - occur error when encoding
-//    EDECODE      - occur error when decoding
+//    ENILP        - nullptr
+//    ECODING      - error occured while coding.
 //    EFPERMISSION - deny permission to access file
 //    EINIT        - init program failed.
-#define EINVALIDKEY	0
-#define EOPTION 	1
-#define EENCODE 	2
-#define EDECODE 	3
-#define EFPERMISSION 	4
-#define EINIT 		5
+enum {
+  EINVALIDKEY = 0,	
+  EOPTION,
+  ENILP,
+  ECODING,
+  EFPERMISSION,
+  EINIT,
+  ENOE
+};
+
+#define FTOINSTALL_NUM 3
 
 extern std::istream *data_src;
 extern codestream::Codestream codestream_main;
-extern ops_wrapper::gcstruct gcs;
-extern unsigned short src_from;
+extern unsigned char if_f_got;
 extern unsigned short main_error_code;
+extern void *(*toinstall[FTOINSTALL_NUM])(void *);
 
 //  main_optionf_<option> - main program option function for <option>.
 
@@ -51,22 +48,15 @@ template<class T>
 requires std::same_as<T, const char *> || std::integral<T> || std::floating_point<T>
 int main_optionf_k(T key);
 
-//  main_optionf_e - does init works for encoding.
-int main_optionf_e(const char *target);
-
-//  main_optionf_d - does decode works for decoding.
-int main_optionf_d(const char *target);
+//  main_optionf_eandd - does init works for encoding and decoding.
+int main_optionf_eandd(const char *target);
 
 //  main_optionf_f - indicate data from file.
 int main_optionf_f(void);
 
-//  main_create_stram - create stream for prepare to read data.
-//  This function should be STATIC in *.cc file.
-//int main_create_stream(unsigned short which_case);
-
 //  main_coding - start encoding ot decoding.
 //    @gcs : the general coding structure object pointer.
-int main_coding(ops_wrapper::gstruct *gcs);
+int main_coding(ops_wrapper::gcstruct *gcs);
 
 //  main_optionf_h - just output help.
 void main_optionf_h(void)
@@ -104,6 +94,49 @@ int main_optionf_k(const char *key)
   ulkey = strtoul(key, nullptr, 10ul);
   ops_wrapper::ops_wrapper_otm_key(ulkey);
   return 0;
+}
+
+void main_output_error_msg(decltype(main_error_code) e)
+{
+  using std::cerr;
+  using std::endl;
+
+  #define CMESTR "codestream_main : error : "
+
+  switch (e) {
+  case EINVALIDKEY:
+    cerr<<CMESTR "key value is not a valid type."<<endl;
+    break;
+
+  case EOPTION:
+    cerr<<CMESTR "incorrectly used option."<<endl;
+    break;
+   
+  case ENILP:
+    cerr<<CMESTR "code error,nullptr."<<endl;
+    break;
+
+  case ECODING:
+    cerr<<CMESTR "error occured while coding,maybe data reading fault."<<endl;
+    break;
+
+  case EFPERMISSION:
+    cerr<<CMESTR "open file was failed,maybe deny permission."<<endl;
+    break;
+
+  case EINIT:
+    cerr<<CMESTR "init program failed."<<endl;
+    break;
+
+  case ENOE:
+    cerr<<CMESTR "code error,not an error."<<endl;
+    break;
+
+  default:
+    cerr<<CMESTR "code error,unknown error."<<endl;
+  }
+
+  #undef CMESTR
 }
 
 
