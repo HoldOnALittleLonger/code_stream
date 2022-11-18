@@ -12,8 +12,13 @@ DIRS := inc bin src
 
 
 CCFILES += $(wildcard $(foreach cf, $(DIRS), $(cf)/*.cc))
-OBJS := $(patsubst %.cc, %.o, $(CCFILES))
 LCLIBS := $(patsubst %, -l%, $(CLIBS))
+
+OBJS += operation_definition.o
+OBJS += ops_wrapper.o
+OBJS += codestream_abstract.o
+OBJS += codestream.o
+
 LIBS += libops.so
 LIBS += libopswrapper.so
 LIBS += libcodestream.so
@@ -25,8 +30,8 @@ vpath %.h ./inc
 %.o:%.cc
 	$(CC) $(CCFLAGS) -o $@ -c $< -Iinc
 
-codestream: codestream.o $(LIBS)
-	@echo "uncompleted"
+codestream: codestream_main.o $(OBJS)
+	$(CC) $(CCFLAGS) -o $@ $^ $(LCLIBS)
 
 libops.so: operation_definition.cc
 libopswrapper.so: ops_wrapper.cc

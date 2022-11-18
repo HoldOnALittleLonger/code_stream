@@ -14,7 +14,7 @@
 //    -d - decode mode
 //    -f - from file
 //    -h - print help message
-#define OPTION_STRING "-k:-e:-d:-fh"
+#define OPTION_STRING "k:e:d:fh"
 
 //  ERROR CODE
 //    EINVALIDKEY  - invalid key
@@ -33,11 +33,10 @@ enum {
   ENOE
 };
 
+#define GCS_BUFF_SIZE  512
 #define FTOINSTALL_NUM 3
 
-extern std::istream *data_src;
 extern codestream::Codestream codestream_main;
-extern unsigned char if_f_got;
 extern unsigned short main_error_code;
 extern void *(*toinstall[FTOINSTALL_NUM])(void *);
 
@@ -45,8 +44,27 @@ extern void *(*toinstall[FTOINSTALL_NUM])(void *);
 
 //  main_optionf_k - set key value for ops_wrapper
 template<class T>
-requires std::same_as<T, const char *> || std::integral<T> || std::floating_point<T>
-int main_optionf_k(T key);
+requires std::integral<T> || std::floating_point<T>
+int main_optionf_k(T key)
+{
+  ops_wrapper::ops_wrapper_otm_key(key);
+  return 0;
+}
+
+template<class T>
+requires std::same_as<T, char>
+int main_optionf_k(T *key)
+{
+  unsigned long ulkey(0);
+  if (!key) {
+    main_error_code = EINVALIDKEY;
+    return -1;
+  }
+
+  ulkey = strtoul(key, nullptr, 10ul);
+  ops_wrapper::ops_wrapper_otm_key(ulkey);
+  return 0;
+}
 
 //  main_optionf_eandd - does init works for encoding and decoding.
 int main_optionf_eandd(const char *target);
@@ -55,90 +73,13 @@ int main_optionf_eandd(const char *target);
 int main_optionf_f(void);
 
 //  main_coding - start encoding ot decoding.
-//    @gcs : the general coding structure object pointer.
-int main_coding(ops_wrapper::gcstruct *gcs);
+//    @gcs       : the general coding structure object pointer.
+//    @once_read : how many data should read at once cycle.
+int main_coding(ops_wrapper::gcstruct *gcs, ssize_t once_read);
 
 //  main_optionf_h - just output help.
-void main_optionf_h(void)
-{
-  using std::cout;
-  using std::endl;
-  cout<<"HELP MESSAGE : "<<endl
-      <<"  usage : <program> <options>"<<endl
-      <<"    options : "<<endl
-      <<"      -k <key-value> : set key value for coding."<<endl
-      <<"      -e <target>    : encode <target>."<<endl
-      <<"      -d <target>    : decode <target>."<<endl
-      <<"      -f             : read data from file."<<endl
-      <<"      -h             : print these messages."<<endl
-      <<"    # dont use -e and -d at same time."<<endl
-      <<"    # target could be file-name or string."<<endl
-      <<"    # if provide file-name,must assign -f option."<<endl
-      <<"    # symbol - means stdin."<<endl;
-}
+void main_optionf_h(void);
 
-template<class T>
-int main_optionf_k(T key)
-{
-  ops_wrapper::ops_wrapper_otm_key(key);
-  return 0;
-}
-
-template<>
-int main_optionf_k(const char *key)
-{
-  unsigned long ulkey(0);
-  if (!key)
-    return -1;
-
-  ulkey = strtoul(key, nullptr, 10ul);
-  ops_wrapper::ops_wrapper_otm_key(ulkey);
-  return 0;
-}
-
-void main_output_error_msg(decltype(main_error_code) e)
-{
-  using std::cerr;
-  using std::endl;
-
-  #define CMESTR "codestream_main : error : "
-
-  switch (e) {
-  case EINVALIDKEY:
-    cerr<<CMESTR "key value is not a valid type."<<endl;
-    break;
-
-  case EOPTION:
-    cerr<<CMESTR "incorrectly used option."<<endl;
-    break;
-   
-  case ENILP:
-    cerr<<CMESTR "code error,nullptr."<<endl;
-    break;
-
-  case ECODING:
-    cerr<<CMESTR "error occured while coding,maybe data reading fault."<<endl;
-    break;
-
-  case EFPERMISSION:
-    cerr<<CMESTR "open file was failed,maybe deny permission."<<endl;
-    break;
-
-  case EINIT:
-    cerr<<CMESTR "init program failed."<<endl;
-    break;
-
-  case ENOE:
-    cerr<<CMESTR "code error,not an error."<<endl;
-    break;
-
-  default:
-    cerr<<CMESTR "code error,unknown error."<<endl;
-  }
-
-  #undef CMESTR
-}
-
-
+void main_output_error_msg(decltype(main_error_code) e);
 
 #endif // HEAD END

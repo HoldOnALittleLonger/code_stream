@@ -9,7 +9,7 @@
 #define DFSTDIN   1
 #define DFCMD     2
 
-std::istream *data_src(nullptr);
+//  codestream_main - codestream object
 codestream::Codestream codestream_main;
 
 //  main_error_code - explain what error was occured.
@@ -17,16 +17,21 @@ codestream::Codestream codestream_main;
 //    #  would changes this variable.
 unsigned short main_error_code(ENOE);
 
-//  if_f_got - just a flag to distingulish DATA SOURCE.
-unsigned char if_f_got(0);
+//  data_src - stream pointer.
+static std::istream *data_src(nullptr);
 
-//  toinstall - a function array saves the function pointer all will be
-//              installed into codestream.
-//void *(toinstall *)(void *)[FTOINSTALL_NUM];
-//  #  defined in codestream_main.cc
+//  if_f_got - just a flag to distingulish DATA SOURCE.
+static unsigned char if_f_got(0);
 
 //  previous declare.
 static int main_create_stream(unsigned short, const char *);
+
+//  for recycle resource created by main_create_stream.
+static std::ifstream *for_recycle(nullptr);
+static void recycle_mcs(void)
+{
+  delete for_recycle;
+}
 
 //  main_optionf_eandd - do some prepare works for encode or decode.
 //    @target : const char pointer,it should be the same char pointer
@@ -72,12 +77,13 @@ int main_optionf_f(void)
 }
 
 //  main_coding - procedure to coding.
-//    @gcs   : the ops_wrapper::general coding structure pointer.
+//    @gcs       : the ops_wrapper::general coding structure pointer.
+//    @once_read : how many data should read at once cycle.
+//                 #  This argument is size limit on algorithm.
 //    return - 0 or -1,main_error_code would be setted while -1
 //             was returned.
-int main_coding(ops_wrapper::gcstruct *gcs)
+int main_coding(ops_wrapper::gcstruct *gcs, ssize_t once_read)
 {
-  ssize_t once_read(0);
   ssize_t record_length(0);
 
   if (!gcs || !gcs->buff1 || !gcs->buff2) {
@@ -85,9 +91,6 @@ int main_coding(ops_wrapper::gcstruct *gcs)
     return -1;
   }
 
-  //  this it's size limit on coding algorithm.
-  once_read = gcs->size_of_buff1 / 4;
-  
   do {
     //  read data from stream.
     data_src->read(gcs->buff1, once_read);
@@ -131,12 +134,6 @@ int main_coding(ops_wrapper::gcstruct *gcs)
   return (main_error_code == ENOE) ? 0 : -1;
 }
 
-static std::ifstream *for_recycle(nullptr);
-static void recycle_mcs(void)
-{
-  delete for_recycle;
-}
-
 //  main_create_stream - create stream for reading data.
 //    @which_case : indicates which case is it.
 //                  DFFILE | DFSTDIN | DFCMD
@@ -171,6 +168,9 @@ static int main_create_stream(unsigned short which_case, const char *t)
     data_src = dynamic_cast<std::istream *>(&std::cin);
     if (!data_src)
       main_error_code = EINIT;
+
+    data_src->ignore(255);
+
     break;
       
   case DFCMD:
@@ -179,6 +179,9 @@ static int main_create_stream(unsigned short which_case, const char *t)
       main_error_code = EINIT;
       break;
     }
+    
+    data_src->ignore(255);
+
     //  put characters in @t back to std::cin.
     for ( ; *t != '\0'; ++t)
       data_src->putback(*t);
@@ -190,4 +193,67 @@ static int main_create_stream(unsigned short which_case, const char *t)
   }
 
   return (main_error_code == ENOE) ? 0 : -1;
+}
+
+void main_optionf_h(void)
+{
+  using std::cout;
+  using std::endl;
+  cout<<"HELP MESSAGE : "<<endl
+      <<"  usage : <program> <options>"<<endl
+      <<"    options : "<<endl
+      <<"      -k <key-value> : set key value for coding."<<endl
+      <<"      -e <target>    : encode <target>."<<endl
+      <<"      -d <target>    : decode <target>."<<endl
+      <<"      -f             : read data from file."<<endl
+      <<"      -h             : print these messages."<<endl
+      <<"    # dont use -e and -d at same time."<<endl
+      <<"    # target could be file-name or string."<<endl
+      <<"    # if provide file-name,must assign -f option."<<endl
+      <<"    # symbol - means stdin."<<endl;
+}
+
+void main_output_error_msg(decltype(main_error_code) e)
+{
+  using std::cerr;
+  using std::endl;
+
+  #define CMESTR "codestream_main : error : "
+
+  cerr<<"e is "<<e<<endl;
+
+  switch (e) {
+  case EINVALIDKEY:
+    cerr<<CMESTR "key value is not a valid type."<<endl;
+    break;
+
+  case EOPTION:
+    cerr<<CMESTR "incorrectly used option."<<endl;
+    break;
+   
+  case ENILP:
+    cerr<<CMESTR "code error,nullptr."<<endl;
+    break;
+
+  case ECODING:
+    cerr<<CMESTR "error occured while coding,maybe data reading fault."<<endl;
+    break;
+
+  case EFPERMISSION:
+    cerr<<CMESTR "open file was failed,maybe deny permission."<<endl;
+    break;
+
+  case EINIT:
+    cerr<<CMESTR "init program failed."<<endl;
+    break;
+
+  case ENOE:
+    cerr<<CMESTR "code error,not an error."<<endl;
+    break;
+
+  default:
+    cerr<<CMESTR "code error,unknown error."<<endl;
+  }
+
+  #undef CMESTR
 }
