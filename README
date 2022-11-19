@@ -147,13 +147,13 @@ Structure:
 		namespace : ops_wrapper
 
 		struct general_coding_struct {
-		       char *buff1;
-		       size_t length_of_buff1;
-		       size_t size_of_buff1;
+		       char *buff1;		//  input
+		       size_t length_of_buff1;  //  realy readed
+		       size_t size_of_buff1;    //  buffer size
 
-		       char *buff2;
-		       size_t length_of_buff2;
-		       size_t size_of_buff2;
+		       char *buff2;		//  output
+		       size_t length_of_buff2;  //  realy writed
+		       size_t size_of_buff2;    //  buffer size
 		};
 		using gcstruct = struct general_coding_struct;
 
@@ -235,6 +235,12 @@ Structure:
 		static void if_wrappers_exist(void) noexcept(false);
 
 		... other definitions.
+
+	#HEADFILE
+	<recycle_atexit.h>
+		template class to recycle resource from 'new' at program exit.
+		//  of course,could use C++ smart pointer to recycle resource.
+		//  it more simply to grasp.
 
 	#MAINFILE
 	codestream :
@@ -368,6 +374,10 @@ Debug or Other:
       	 state and flag is so chaotic. have to change design between them. (Finished)
 	 add new feature that let controller enter sleeping until system state was changed. (Finished)
 	 Design wrapper for ops.(Finished) Revise README.(Finished)
+	 Debug codestream.cc(Finished)
+	 Debug codestream_main.(Finished)
+	 Change program behavior same to FDFILE when data from cmdline.(TODO)
+	 Use C++ smart pointer to manage object memory.(TODO)
 
 
 Complement:

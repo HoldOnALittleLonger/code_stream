@@ -1,4 +1,5 @@
 #include"codestream.h"
+#include"recycle_atexit.h"
 #include<cstring>
 
 //  DATA SOURCE
@@ -26,12 +27,6 @@ static unsigned char if_f_got(0);
 //  previous declare.
 static int main_create_stream(unsigned short, const char *);
 
-//  for recycle resource created by main_create_stream.
-static std::ifstream *for_recycle(nullptr);
-static void recycle_mcs(void)
-{
-  delete for_recycle;
-}
 
 //  main_optionf_eandd - do some prepare works for encode or decode.
 //    @target : const char pointer,it should be the same char pointer
@@ -57,6 +52,7 @@ int main_optionf_eandd(const char *target)
   if (main_create_stream(src_from, target) < 0)
     return -1;
 
+  main_error_code = ENOE;
   //  install procedures from @toinstall[].
   for (unsigned short i(0); i < FTOINSTALL_NUM; ++i) {
     codestream_main.installProcedure(toinstall[i]);
@@ -70,10 +66,9 @@ int main_optionf_eandd(const char *target)
 }
 
 //  main_optionf_f - open flag if_f_got.
-int main_optionf_f(void)
+void main_optionf_f(void)
 {
   if_f_got = 1;
-  return 0;
 }
 
 //  main_coding - procedure to coding.
@@ -88,8 +83,10 @@ int main_coding(ops_wrapper::gcstruct *gcs, ssize_t once_read)
 
   if (!gcs || !gcs->buff1 || !gcs->buff2) {
     main_error_code = ENILP;
-    return -1;
+    goto main_coding_exit;
   }
+
+  std::cout.flush();  //  flush stream before work.
 
   do {
     //  read data from stream.
@@ -134,6 +131,8 @@ int main_coding(ops_wrapper::gcstruct *gcs, ssize_t once_read)
   return (main_error_code == ENOE) ? 0 : -1;
 }
 
+
+
 //  main_create_stream - create stream for reading data.
 //    @which_case : indicates which case is it.
 //                  DFFILE | DFSTDIN | DFCMD
@@ -146,14 +145,14 @@ static int main_create_stream(unsigned short which_case, const char *t)
   switch (which_case) {
   case DFFILE:
     {
+      static ratexit::recycle_atexit<std::ifstream, 1> recycle_ifstream;
       std::ifstream *f = new std::ifstream;
-      for_recycle = f;
-      atexit(recycle_mcs);
       data_src = dynamic_cast<std::istream *>(f);
       if (!data_src) {
 	main_error_code = EINIT;
 	break;
       }
+      recycle_ifstream.addObjToRecycle(f);
 
       //  try to open file.
       //  because system would close file automatically after exit,
@@ -168,9 +167,6 @@ static int main_create_stream(unsigned short which_case, const char *t)
     data_src = dynamic_cast<std::istream *>(&std::cin);
     if (!data_src)
       main_error_code = EINIT;
-
-    data_src->ignore(255);
-
     break;
       
   case DFCMD:
@@ -179,13 +175,11 @@ static int main_create_stream(unsigned short which_case, const char *t)
       main_error_code = EINIT;
       break;
     }
-    
-    data_src->ignore(255);
 
     //  put characters in @t back to std::cin.
-    for ( ; *t != '\0'; ++t)
-      data_src->putback(*t);
-
+    //  recursive insert would make correct order.
+    for (short int last(strlen(t) - 1); last >= 0; --last)
+      data_src->putback(t[last]);
     break;
 
   default:
@@ -195,11 +189,13 @@ static int main_create_stream(unsigned short which_case, const char *t)
   return (main_error_code == ENOE) ? 0 : -1;
 }
 
+
+//  main_optionf_h - print help messages.
 void main_optionf_h(void)
 {
-  using std::cout;
+  using std::cerr;
   using std::endl;
-  cout<<"HELP MESSAGE : "<<endl
+  cerr<<"HELP MESSAGE : "<<endl
       <<"  usage : <program> <options>"<<endl
       <<"    options : "<<endl
       <<"      -k <key-value> : set key value for coding."<<endl
@@ -213,6 +209,8 @@ void main_optionf_h(void)
       <<"    # symbol - means stdin."<<endl;
 }
 
+//  main_output_error_msg - print error messages.
+//    @e : error code.
 void main_output_error_msg(decltype(main_error_code) e)
 {
   using std::cerr;

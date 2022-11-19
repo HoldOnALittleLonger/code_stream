@@ -1,20 +1,10 @@
 #include"codestream.h"
+#include"recycle_atexit.h"
 #include<unistd.h>
 #include<cstring>
 
-void *(*toinstall[FTOINSTALL_NUM])(void *) = {
-  nullptr,
-  nullptr,
-  nullptr
-};
-
-#define RECYCLE_POINTER_NUM 3
-static char *for_recycle_array[RECYCLE_POINTER_NUM];
-static void for_recyclef_array(void)
-{
-  for (unsigned i(0); i < RECYCLE_POINTER_NUM; ++i)
-    delete[] for_recycle_array[i];
-}
+//  toinstall - function array for install.
+void *(*toinstall[FTOINSTALL_NUM])(void *);
 
 int main(int argc, char *argv[])
 {
@@ -23,8 +13,17 @@ int main(int argc, char *argv[])
   char option('\0');
   char *cmdarg(nullptr);
   ops_wrapper::general_coding_struct gcs;
+  ratexit::recycle_atexit<char, 2> recycle_gcs;
 
+  //  number for options should be given is 3 at latest.
+  if (argc < 3) {
+    main_optionf_h();
+    return -EOPTION;
+  }
+
+  memset(toinstall, 0, sizeof(void *(*)(void *)) * FTOINSTALL_NUM);
   memset(&gcs, 0, sizeof(gcs));
+
   gcs.buff1 = new char[GCS_BUFF_SIZE];
   gcs.buff2 = new char[GCS_BUFF_SIZE];
   if (!gcs.buff1 || !gcs.buff2) {
@@ -32,18 +31,11 @@ int main(int argc, char *argv[])
 	     <<std::endl;
     return -ENILP;
   }
-
-  for_recycle_array[0] = gcs.buff1;
-  for_recycle_array[1] = gcs.buff2;
-  atexit(for_recyclef_array);
-
   gcs.length_of_buff1 = gcs.length_of_buff2 = 0;
   gcs.size_of_buff1 = gcs.size_of_buff2 = GCS_BUFF_SIZE;
 
-  if (argc < 3) {
-    main_optionf_h();
-    return -EOPTION;
-  }
+  recycle_gcs.addObjToRecycle(gcs.buff1);
+  recycle_gcs.addObjToRecycle(gcs.buff2);
 
   //  analyse options.
   while ((option = getopt(argc, argv, OPTION_STRING)) != -1) {
@@ -69,9 +61,11 @@ int main(int argc, char *argv[])
     case 'd':
       if (!prevent_ef) {
 	prevent_ef = 1;
-	toinstall[0] = ops_wrapper::ops_wrapper_otm_decode;
+	//  have to install decode function in recursive order to
+	//  encode.
+	toinstall[0] = ops_wrapper::ops_wrapper_base64_decode;
 	toinstall[1] = ops_wrapper::ops_wrapper_gcwt;
-	toinstall[2] = ops_wrapper::ops_wrapper_base64_decode;
+	toinstall[2] = ops_wrapper::ops_wrapper_otm_decode;
 	cmdarg = optarg;
       }
       break;
@@ -92,9 +86,11 @@ int main(int argc, char *argv[])
   }
 
 
+  //  if prevent_ef == 0,that means 
+  //  neither -e nor -d was given.
   if (prevent_ef) {
   try_wrapper_init:
-    unsigned char init_counter(3);
+    unsigned char init_counter(3);  //  hard coding counter.
     try {
       ops_wrapper::ops_wrapper_init();  //  init wrapper
     } catch (int e) {
@@ -118,7 +114,7 @@ int main(int argc, char *argv[])
       if (init_counter-- > 0)
 	goto try_wrapper_init;
       else
-	return -ENILP;
+	return -EINIT;
     }
 
     main_error_code = ENOE;
@@ -130,12 +126,12 @@ int main(int argc, char *argv[])
   else
     return -EOPTION;
   
+  //  already to coding.
   main_error_code = ENOE;
   if (main_coding(&gcs, gcs.size_of_buff1 / 4) < 0) {
     main_output_error_msg(main_error_code);
     return main_error_code * -1;
   }
-
 
   return 0;
 }

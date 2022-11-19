@@ -24,7 +24,7 @@
 //    EFPERMISSION - deny permission to access file
 //    EINIT        - init program failed.
 enum {
-  EINVALIDKEY = 0,	
+  EINVALIDKEY,
   EOPTION,
   ENILP,
   ECODING,
@@ -51,9 +51,10 @@ int main_optionf_k(T key)
   return 0;
 }
 
+//  template function overlord.
 template<class T>
-requires std::same_as<T, char>
-int main_optionf_k(T *key)
+requires std::same_as<T, char *>
+int main_optionf_k(const T key)
 {
   unsigned long ulkey(0);
   if (!key) {
@@ -66,11 +67,13 @@ int main_optionf_k(T *key)
   return 0;
 }
 
+
+
 //  main_optionf_eandd - does init works for encoding and decoding.
 int main_optionf_eandd(const char *target);
 
 //  main_optionf_f - indicate data from file.
-int main_optionf_f(void);
+void main_optionf_f(void);
 
 //  main_coding - start encoding ot decoding.
 //    @gcs       : the general coding structure object pointer.
@@ -80,6 +83,7 @@ int main_coding(ops_wrapper::gcstruct *gcs, ssize_t once_read);
 //  main_optionf_h - just output help.
 void main_optionf_h(void);
 
+//  main_output_error_msg - output error messages.
 void main_output_error_msg(decltype(main_error_code) e);
 
 #endif // HEAD END

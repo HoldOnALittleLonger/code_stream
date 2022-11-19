@@ -1,7 +1,6 @@
 #include"ops_wrapper.h"
 #include"operation_definition.h"
-
-
+#include"recycle_atexit.h"
 
 namespace ops {
   static otm::otm_object *otm_bewrapped = nullptr;
@@ -69,6 +68,12 @@ namespace ops_wrapper {
 
   static union gc_keys_ul gckul;
 
+  static ratexit::recycle_atexit<otm::otm_object, 1>
+  recycle_otm;
+  static ratexit::recycle_atexit<base64::base64_object, 1>
+  recycle_base64;
+
+
   //  construct_ops_wrappers - constructure ops_wrappers.
   static void construct_ops_wrappers(void)
   {
@@ -115,9 +120,9 @@ namespace ops_wrapper {
     ssize_t result(0);
     if (!s)
       return nullptr;
-    result = ops::otm_bewrapped->otmDecode(s->buff2, s->length_of_buff2,
-					   s->buff1, s->size_of_buff1);
-    s->length_of_buff1 = (result > 0) ? result : 0;
+    result = ops::otm_bewrapped->otmDecode(s->buff1, s->length_of_buff1,
+					   s->buff2, s->size_of_buff2);
+    s->length_of_buff2 = (result > 0) ? result : 0;
     cwer = CWER_OTM;
     return s;
   }
@@ -147,9 +152,9 @@ namespace ops_wrapper {
     ssize_t result(0);
     if (!s)
       return nullptr;
-    result = ops::base64_bewrapped->base64Decode(s->buff2, s->length_of_buff2,
-					   s->buff1, s->size_of_buff1);
-    s->length_of_buff1 = (result > 0) ? result : 0;
+    result = ops::base64_bewrapped->base64Decode(s->buff1, s->length_of_buff1,
+					   s->buff2, s->size_of_buff2);
+    s->length_of_buff2 = (result > 0) ? result : 0;
     cwer = CWER_BASE64;
     return s;
   }
@@ -203,6 +208,8 @@ namespace ops_wrapper {
 
     //  init procedures chain --
 
+    recycle_otm.addObjToRecycle(ops::otm_bewrapped);
+    recycle_base64.addObjToRecycle(ops::base64_bewrapped);
     ops_wrapper_init_record = 1;
   }
 
