@@ -1,10 +1,10 @@
 #include"ops_wrapper.h"
 #include"operation_definition.h"
-#include"recycle_atexit.h"
+#include<memory>
 
 namespace ops {
-  static otm::otm_object *otm_bewrapped = nullptr;
-  static base64::base64_object *base64_bewrapped = nullptr;
+  static std::unique_ptr<otm::otm_object> otm_bewrapped(nullptr);
+  static std::unique_ptr<base64::base64_object> base64_bewrapped(nullptr);
 
   //  otm_init - set key for otm object which was wrapped.
   //    @x : the key.
@@ -68,17 +68,13 @@ namespace ops_wrapper {
 
   static union gc_keys_ul gckul;
 
-  static ratexit::recycle_atexit<otm::otm_object, 1>
-  recycle_otm;
-  static ratexit::recycle_atexit<base64::base64_object, 1>
-  recycle_base64;
-
-
   //  construct_ops_wrappers - constructure ops_wrappers.
   static void construct_ops_wrappers(void)
   {
-    ops::otm_bewrapped = new otm::otm_object;
-    ops::base64_bewrapped = new base64::base64_object;
+    otm::otm_object *otmp = new otm::otm_object;
+    base64::base64_object *base64p = new base64::base64_object;
+    ops::otm_bewrapped.reset(otmp);
+    ops::base64_bewrapped.reset(base64p);
 
     //  ... more
 
@@ -208,8 +204,6 @@ namespace ops_wrapper {
 
     //  init procedures chain --
 
-    recycle_otm.addObjToRecycle(ops::otm_bewrapped);
-    recycle_base64.addObjToRecycle(ops::base64_bewrapped);
     ops_wrapper_init_record = 1;
   }
 

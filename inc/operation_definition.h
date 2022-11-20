@@ -26,10 +26,10 @@ namespace otm {
     const char *_const_q_text;
     const char *_const_r_text;
     const unsigned int _scale;
-    char *_q_text;
-    char *_r_text;
-    size_t _text_length;
-    size_t _division;
+    unsigned char *_q_text;
+    unsigned char *_r_text;
+    unsigned int _text_length;
+    unsigned int _division;
     unsigned short _resort;
     
     one_two_map() noexcept(false)
@@ -41,15 +41,16 @@ namespace otm {
 
       // copy keyword string.
       text_length = strlen(_const_q_text);
-      _q_text = new char[text_length];
+      _q_text = new unsigned char[text_length];
       if (!_q_text)
 	throw std::bad_exception();
-      strncpy(_q_text, _const_q_text, text_length);
+      memcpy(_q_text, _const_q_text, text_length);
+
       text_length = strlen(_const_r_text);
-      _r_text = new char[text_length];
+      _r_text = new unsigned char[text_length];
       if (!_r_text)
 	throw std::bad_exception();
-      strncpy(_r_text, _const_r_text, text_length);
+      memcpy(_r_text, _const_r_text, text_length);
 
       // set env
       _division = _text_length = text_length;
@@ -72,19 +73,14 @@ namespace otm {
 
     void sortHashList(void);
     void setResortKey(unsigned short x);
-    ssize_t otmEncode(const char *plaintext, size_t plaintext_length,
-		      char *ciphertext, size_t ciphertext_size);
-    ssize_t otmDecode(const char *ciphertext, size_t ciphertext_length,
-		      char *plaintext, size_t plaintext_size);
+    ssize_t otmEncode(const void *plaintext, size_t plaintext_length,
+		      void *ciphertext, size_t ciphertext_size);
+    ssize_t otmDecode(const void *ciphertext, size_t ciphertext_length,
+		      void *plaintext, size_t plaintext_size);
 
     //  scaleElement - scale @x by multiple _scale
     //    @x : value to scale
-    template<typename T>
-    requires requires (T &arg, unsigned short p) {
-      arg * p;
-      p * arg;
-    }
-    constexpr T scaleElement(T x) 
+    constexpr unsigned int scaleElement(unsigned char x) 
     {
       return (x * _scale);
     }
@@ -110,7 +106,7 @@ namespace base64 {
 #undef BASE64_MAPPING
 
     /* parts */
-    unsigned short getIndexForC(char c);
+    unsigned short getIndexForC(unsigned char c);
 
     //  nextAddress - return next pointer 
     //    @p : the pointer for current position
@@ -124,15 +120,16 @@ namespace base64 {
     {
       return p + displacement;
     }
-    char first_of(const char *segment);
-    char second_of(const char *segment);
-    char third_of(const char *segment);
-    char fourth_of(const char *segment);
+
+    unsigned char first_of(const unsigned char *segment);
+    unsigned char second_of(const unsigned char *segment);
+    unsigned char third_of(const unsigned char *segment);
+    unsigned char fourth_of(const unsigned char *segment);
     
-    ssize_t base64Encode(const char *plaintext, size_t plaintext_length,
-			 char *ciphertext, size_t ciphertext_size);
-    ssize_t base64Decode(const char *ciphertext, size_t plaintext_length,
-			 char *plaintext, size_t plaintext_size);
+    ssize_t base64Encode(const void *plaintext, size_t plaintext_length,
+			 void *ciphertext, size_t ciphertext_size);
+    ssize_t base64Decode(const void *ciphertext, size_t plaintext_length,
+			 void *plaintext, size_t plaintext_size);
   };
 
   using base64_object = struct base64_coding;

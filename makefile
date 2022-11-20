@@ -8,6 +8,7 @@ LIBS :=
 LLIBS :=
 CCFILES :=
 OBJS := 
+STATIC_OBJS :=
 DIRS := inc bin src
 
 
@@ -17,7 +18,9 @@ LCLIBS := $(patsubst %, -l%, $(CLIBS))
 OBJS += operation_definition.o
 OBJS += ops_wrapper.o
 OBJS += codestream_abstract.o
-OBJS += codestream.o
+
+STATIC_OBJS += codestream_main.o
+STATIC_OBJS += codestream.o
 
 LIBS += libops.so
 LIBS += libopswrapper.so
@@ -30,8 +33,17 @@ vpath %.h ./inc
 %.o:%.cc
 	$(CC) $(CCFLAGS) -o $@ -c $< -Iinc
 
-codestream: codestream_main.o $(OBJS)
+codestream: $(STATIC_OBJS) $(OBJS)
 	$(CC) $(CCFLAGS) -o $@ $^ $(LCLIBS)
+	@mv $@ bin/
+
+codestream_libv: $(STATIC_OBJS) $(LIBS)
+	$(CC) $(CCFLAGS) -o $@ $(STATIC_OBJS) -L. $(LLIBS) $(LCLIBS)
+	@echo "!!! Have to move lib files $(LIBS) into /lib,and then run ldconfig."
+	@mv $@ bin/
+
+help:
+	@echo "Usage : make codestream | make codestream_libv"
 
 libops.so: operation_definition.cc
 libopswrapper.so: ops_wrapper.cc
@@ -40,19 +52,7 @@ $(LIBS):%.so:%.cc
 	$(CC) $(CCFLAGS) -fPIC -shared -o $@ $< -Iinc
 
 
-.PHONY: catm clean ops_test ops_wrapper_test make_libs
-catm: codestream_abstract_test.o codestream_abstract.o
-	$(CC) $(CCFLAGS) -o $@ $^ $(LIBS)
-
-ops_test: ops_test.o operation_definition.o
-	$(CC) $(CCFLAGS) -o $@ $^
-
-ops_wrapper_test: ops_wrapper_test.o ops_wrapper.o operation_definition.o
-	$(CC) $(CCFLAGS) -o $@ $^
-
-make_libs: $(LIBS)
-	@mv $(LIBS) lib/
-
+.PHONY: clean
 clean:
-	@rm -f *.o lib/*.so
+	@rm -f *.o *.so
 	@rm -f $(foreach d, $(DIRS), $(d)/*~)

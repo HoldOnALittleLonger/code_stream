@@ -1,5 +1,5 @@
 #include"codestream.h"
-#include"recycle_atexit.h"
+#include<memory>
 #include<cstring>
 
 //  DATA SOURCE
@@ -145,14 +145,15 @@ static int main_create_stream(unsigned short which_case, const char *t)
   switch (which_case) {
   case DFFILE:
     {
-      static ratexit::recycle_atexit<std::ifstream, 1> recycle_ifstream;
+      static std::unique_ptr<std::ifstream> fp(nullptr);
       std::ifstream *f = new std::ifstream;
       data_src = dynamic_cast<std::istream *>(f);
       if (!data_src) {
 	main_error_code = EINIT;
 	break;
       }
-      recycle_ifstream.addObjToRecycle(f);
+
+      fp.reset(f);
 
       //  try to open file.
       //  because system would close file automatically after exit,

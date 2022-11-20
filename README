@@ -13,61 +13,59 @@ Design reason:
 
 Structure:
 	Define a C++ abstract class named Codestream.
-	Codestream::_code_procedures	  - A std::vector object which contains code procedures.
-				    	  - Codestream' main procedure would use these procedure to operates data by an order was assigned.
-	Codestream::_cp_end		  - Index of end point for _code_procedures.
+	Codestream::_code_procedures	    - A std::vector object which contains code procedures.
+				    	    - Codestream' main procedure would use these procedure to operates data by an order was assigned.
+	Codestream::_cp_end		    - Index of end point for _code_procedures.
 
-	Codestream::_codestream_error	  - A std::bitset object which has some bits to indicate that error is occurs.
+	Codestream::_codestream_error	    - A std::bitset object which has some bits to indicate that error is occurs.
 
-	Codestream::_codestream_flag	  - A std::bitset object which has some bits to saves some flags.
+	Codestream::_codestream_flag	    - A std::bitset object which has some bits to saves some flags.
 
-	Codestream::_ip		     	  - Record next position of procedures chain.
-	Codestream::_last_ip_start	  - For reset.
-	Codestream::_ip_mutex	     	  - Must lock this mutex before access _ip member.
-	Codestream::_ip_start		  - _ip cant less than this variable.
-	Codestream::_ip_end	     	  - End point of procedures chain.
+	Codestream::_ip		     	    - Record next position of procedures chain.
+	Codestream::_last_ip_start	    - For reset.
+	Codestream::_ip_mutex	     	    - Must lock this mutex before access _ip member.
+	Codestream::_ip_start		    - _ip cant less than this variable.
+	Codestream::_ip_end	     	    - End point of procedures chain.
 
-	Codestream::_last_op_ret     	  - Save last operation return.
+	Codestream::_last_op_ret     	    - Save last operation return.
 	
-	Codestream::_state		  - Codestream status.
+	Codestream::_state		    - Codestream status.
 	Codestream::_state_when_error_occur - For recover from trap.
-	Codestream::_state_mutex	  - Saver of _state.
+	Codestream::_state_mutex	    - Saver of _state.
 
-	Codestream::_work_condition	  - std::condtion_variable for woker control.
+	Codestream::_work_condition	    - std::condtion_variable for woker control.
 
-	Codestream::resetCodestream()	  - Reset codestream.
-	Codestream::setStartPoint()	  - Set _ip.
-	Codestream::coding()		  - thread wrapper for startCode().
-	Codestream::startCode()	     	  - Start coding.
-	Codestream::stopCode()	     	  - Stop coding.
-	Codestream::restartCode()    	  - Restart coding from breakpoint.
-	Codestream::installProcedure()    - Install a procedure into _code_procedures.
-					  - /* this function has overload version for install at an assigned position */
+	Codestream::resetCodestream()	    - Reset codestream.
+	Codestream::setStartPoint()	    - Set _ip.
+	Codestream::coding()		    - thread wrapper for startCode().
+	Codestream::startCode()	     	    - Start coding.
+	Codestream::stopCode()	     	    - Stop coding.
+	Codestream::restartCode()    	    - Restart coding from breakpoint.
+	Codestream::installProcedure()      - Install a procedure into _code_procedures.
+					    - /* this function has overload version for install at an assigned position */
 
-	Codestream::uninstallProcedure()  - Uninstall a procedure from _code_procedures.
-	Codestream::getProgress()	  - Return _ip,require _ip_mutext.
-	Codestream::getLastResult()	  - Return _last_op_ret,require _ip_mutex.
-	Codestream::getOpChainSize() 	  - Return _cp_end.
-	Codestream::processStateExplain() - Return a C++ string to explain what happen now.
-	Codestream::processErrorExplain() - Return a C++ string to explain error.
+	Codestream::uninstallProcedure()    - Uninstall a procedure from _code_procedures.
+	Codestream::getProgress()	    - Return _ip,require _ip_mutext.
+	Codestream::getLastResult()	    - Return _last_op_ret,require _ip_mutex.
+	Codestream::getOpChainSize() 	    - Return _cp_end.
+	Codestream::processStateExplain()   - Return a C++ string to explain what happen now.
+	Codestream::processErrorExplain()   - Return a C++ string to explain error.
 
-	Codestream::programErrorRecover() - Error recovery function.
-					  - Caller should do the action cause error again.
-					  - Caller can use is_<feature> function to check process state.
+	Codestream::programErrorRecover()   - Error recovery function.
+					    - Caller should do the action cause error again.
+					    - Caller can use is_<feature> function to check process state.
 
-	Codestream::toggleOpOrder()	  - A toggle to change _ip increase direction.increase
-	Codestream::is_processing()	  - Return true -> _state == CODESTREAM_PROGRESSING,otherwise false.
-	Codestream::is_suspend()	  - Return true -> _state == CODESTREAM_SUSPEND,otherwise false.
-	Codestream::is_shutdown()	  - Return true -> _state == CODESTREAM_SHUTDOWN,otherwise false.
-	Codestream::is_execsuccess()	  - Return true -> _cerror == NOERROR,otherwise false.
-
-
+	Codestream::toggleOpOrder()	    - A toggle to change _ip increase direction.increase
+	Codestream::is_processing()	    - Return true -> _state == CODESTREAM_PROGRESSING,otherwise false.
+	Codestream::is_suspend()	    - Return true -> _state == CODESTREAM_SUSPEND,otherwise false.
+	Codestream::is_shutdown()	    - Return true -> _state == CODESTREAM_SHUTDOWN,otherwise false.
+	Codestream::is_execsuccess()	    - Return true -> _cerror == NOERROR,otherwise false.
 
 	enum codestream_state {
-	     CODESTREAM_PROGRESSING,		// coding task is working now
-	     CODESTREAM_SUSPEND,		// coding task was suspended		
-	     CODESTREAM_ERROR,			// an error occurred,controller have to solve error
-	     CODESTREAM_SHUTDOWN		// coding task had done
+	     CODESTREAM_PROGRESSING,	// coding task is working now
+	     CODESTREAM_SUSPEND,	// coding task was suspended		
+	     CODESTREAM_ERROR,		// an error occurred,controller have to solve error
+	     CODESTREAM_SHUTDOWN	// coding task had done
 	};
 
 	/* task worker is probably set state to ERROR OR SHUTDOWN */
@@ -83,9 +81,6 @@ Structure:
 	     ERROR_SUSPENDFAILED,
 	     ERROR_RECOVERFAILED
 	};
-
-
-
 	/* ERROR_NOINT : may be none of procedures was installed */
 	/* ERROR_INSTALLPROCFAILED : had fault when install procedure */
 	/* ERROR_UNINSTALLPROCFAILED : had fault when uninstall procedure */
@@ -96,7 +91,6 @@ Structure:
 	     FLAG_INIT,
 	     FLAG_OPDIRECTION
 	};
-	
 	/* FLAG_INIT == 0 -> noinit */
 	/* FLAG_INIT == 1 -> had init */
 	/* FLAG_OPDIRECTION == 0 -> left to right */
@@ -127,13 +121,12 @@ Structure:
 
 	work procedure objects :
 	     struct one_two_map;	//  coding algothrim object
-	     struct base64_coding;	//  coding algothrim object
-
 	     one_two_map {
 	     	map one byte to two bytes.
 		port from <cryptor.git> of @Takanashi-Rikka-O
 	     }
 
+	     struct base64_coding;	//  coding algothrim object
 	     base64_coding {
 	     	base64 coding algothrim.
 		port from <cryptor.git> of @Takanashi-Rikka-O
@@ -237,10 +230,8 @@ Structure:
 		... other definitions.
 
 	#HEADFILE
-	<recycle_atexit.h>
-		template class to recycle resource from 'new' at program exit.
-		//  of course,could use C++ smart pointer to recycle resource.
-		//  it more simply to grasp.
+	<memory>
+		C++ smart pointer to manage objects.
 
 	#MAINFILE
 	codestream :
@@ -257,8 +248,18 @@ Structure:
 		//    #	   cin | ifstream object
 		istream *data_src;
 
+		#define GCS_BUFF_SIZE 4096
 		//  gcs - general coding structure object.
 		gcstruct gcs;
+
+		//  ENCODE_INPUT - data block to read in encoding case.
+		//  DECODE_INPUT - data block to read in decoding case.
+		//  otm    : size = size * 2
+		//  base64 : size = size * 4 / 3
+		enum {
+		     ENCODE_INPUT = (GCS_BUFF_SIZE * 8) / 3,
+		     DECODE_INPUT = GCS_BUFF_SIZE
+		};
 		
 		//  if_f_got - flag to indicates -f was given.
 		unsigned char if_f_got;
@@ -337,8 +338,6 @@ Structure:
 		      EFPERMISSION   -  have no permission to access file.
 		      ENOE           -  not error.
 		      
-		
-
 Logic order:
 	user execute binary file with properly command sequence.
 	program create Codestream class.
@@ -376,9 +375,18 @@ Debug or Other:
 	 Design wrapper for ops.(Finished) Revise README.(Finished)
 	 Debug codestream.cc(Finished)
 	 Debug codestream_main.(Finished)
-	 Change program behavior same to FDFILE when data from cmdline.(TODO)
-	 Use C++ smart pointer to manage object memory.(TODO)
+	 Change program behavior same to FDFILE when data from cmdline.(
+	 	maybe could use vfork() to create in-current child process,after a condition came,
+		let it calls std::cin.setstate(std::ios_base::eofbit) to prevent block on std::cin.read
+		(system env depend)
 
+		else,use tmpfile and fill it with the text then open it do some work alike DFFILE.
+		(libc depend)
+		)
+	 Use C++ smart pointer to manage object memory.(Finished)
+
+	 Looks like that cant use program to encode or decode non-text file,this is because of otm algorithm
+	 is not wokr fine on such files.But base64 is work fine.
 
 Complement:
 	<There could place some messages as additional.Addition could explain the project in the further gradation.>

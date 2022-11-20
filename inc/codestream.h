@@ -33,7 +33,7 @@ enum {
   ENOE
 };
 
-#define GCS_BUFF_SIZE  512
+#define GCS_BUFF_SIZE  4096
 #define FTOINSTALL_NUM 3
 
 extern codestream::Codestream codestream_main;
