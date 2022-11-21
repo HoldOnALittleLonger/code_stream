@@ -203,8 +203,8 @@ namespace base64 {
 				      void *ciphertext, size_t ciphertext_size)
   {
     unsigned char first('\0'), second('\0'), third('\0');
-    ssize_t ciphertext_index(0);
-    unsigned int quotient_value(0), remainder_value(0);
+    ssize_t c_index(0);
+    unsigned int qv(0), rv(0);
     unsigned char *temp_buffer(nullptr);
     const unsigned char *entry(nullptr), *p(static_cast<const unsigned char *>(plaintext));
     unsigned char *c(static_cast<unsigned char *>(ciphertext));
@@ -212,7 +212,9 @@ namespace base64 {
     if (!p || !c)
       return -1;
 
-    temp_buffer = new unsigned char[plaintext_length];
+    //  size += 4, because procedure will fill zero byte to end,
+    //  if necessary.
+    temp_buffer = new unsigned char[plaintext_length + 4];
     if (!temp_buffer)
       return -1;
     else {
@@ -225,46 +227,46 @@ namespace base64 {
 	memcpy(temp_buffer, p, plaintext_length);
     }
 
-    quotient_value = plaintext_length / 3;
-    remainder_value = plaintext_length - (plaintext_length / 3) * 3;
+    qv = plaintext_length / 3;
+    rv = plaintext_length - (plaintext_length / 3) * 3;
 
     // replenish zero at end.
-    if (remainder_value) {
-      for (unsigned short count(0); count < 3 - remainder_value; ++count)
+    if (rv) {
+      for (unsigned short count(0); count < 3 - rv; ++count)
 	temp_buffer[plaintext_length++] = '\0';
-      quotient_value = plaintext_length / 3;
+      qv = plaintext_length / 3;
     }
     
     entry = temp_buffer;
-    ciphertext_index = 0;
+    c_index = 0;
     // main algorithm
-    for (unsigned short iterator(0), map_index(0); iterator < quotient_value; ++iterator) {
+    for (unsigned short iterator(0), mapi(0); iterator < qv; ++iterator) {
       first = first_of(entry);
       second = second_of(entry);
       third = third_of(entry);
 
-      map_index = (unsigned char)(first >> 2);
-      c[ciphertext_index++] = _base64_mapping[map_index];
+      mapi = (unsigned char)(first >> 2);
+      c[c_index++] = _base64_mapping[mapi];
 
-      map_index = (unsigned char)((unsigned char)(first << 6) >> 2) | (unsigned char)(second >> 4);
-      c[ciphertext_index++] = _base64_mapping[map_index];
+      mapi = (unsigned char)((unsigned char)(first << 6) >> 2) | (unsigned char)(second >> 4);
+      c[c_index++] = _base64_mapping[mapi];
 
-      map_index = (unsigned char)((unsigned char)(second << 4) >> 2) | (unsigned char)(third >> 6);
-      c[ciphertext_index++] = _base64_mapping[map_index];
+      mapi = (unsigned char)((unsigned char)(second << 4) >> 2) | (unsigned char)(third >> 6);
+      c[c_index++] = _base64_mapping[mapi];
 
-      map_index = (unsigned char)(third << 2) >> 2;
-      c[ciphertext_index++] = _base64_mapping[map_index];
+      mapi = (unsigned char)(third << 2) >> 2;
+      c[c_index++] = _base64_mapping[mapi];
 
       entry = nextAddress(entry, 3);
     }
     // prompt that how many zero were appended.
-    for (unsigned short count(0), index(ciphertext_index - 1);
-	 remainder_value && count < 3 - remainder_value;
+    for (unsigned short count(0), index(c_index - 1);
+	 rv && count < 3 - rv;
 	 ++count)
       c[index--] = '=';
     
     delete[] temp_buffer;
-    return ciphertext_index;
+    return c_index;
   }
 
   //  base64Decode - main method do base64 decoding.
@@ -280,9 +282,9 @@ namespace base64 {
     const unsigned char *entry(nullptr);
     unsigned char *temp_buffer(nullptr);  //  need a changiable pointer.
     unsigned char first('\0'), second('\0'), third('\0'), fourth('\0');
-    unsigned short map_index1(0), map_index2(0), map_index3(0), map_index4(0);
-    unsigned short quotient_value(0), remainder_value(0);
-    ssize_t plaintext_index(0);
+    unsigned short mapi1(0), mapi2(0), mapi3(0), mapi4(0);
+    unsigned short qv(0), rv(0);
+    ssize_t p_index(0);
     unsigned char *p(static_cast<unsigned char *>(plaintext));
 
     unsigned char count_for_addition(0);  //  dont out put additions.
@@ -290,13 +292,13 @@ namespace base64 {
     if (!ciphertext || !p)
       return -1;
 
-    quotient_value = ciphertext_length / 4;
-    remainder_value = ciphertext_length - (ciphertext_length / 4) * 4;
+    qv = ciphertext_length / 4;
+    rv = ciphertext_length - (ciphertext_length / 4) * 4;
 
-    if (plaintext_size < (quotient_value * 3))
+    if (plaintext_size < (qv * 3))
       return -1;
 
-    if (remainder_value)    // ciphertext may be not a properly base64 data string
+    if (rv)    // ciphertext may be not a properly base64 data string
       return -1;
 
     temp_buffer = new unsigned char[ciphertext_length];
@@ -313,36 +315,36 @@ namespace base64 {
     }
 
     entry = temp_buffer;
-    plaintext_index = 0;
+    p_index = 0;
     // main algorithm
-    for (unsigned short count(0); count < quotient_value; ++count) {
+    for (unsigned short count(0); count < qv; ++count) {
       first = first_of(entry);
       second = second_of(entry);
       third = third_of(entry);
       fourth = fourth_of(entry);
 
-      map_index1 = getIndexForC(first);
-      map_index2 = getIndexForC(second);
-      map_index3 = getIndexForC(third);
-      map_index4 = getIndexForC(fourth);      
+      mapi1 = getIndexForC(first);
+      mapi2 = getIndexForC(second);
+      mapi3 = getIndexForC(third);
+      mapi4 = getIndexForC(fourth);      
 
-      if (map_index1 >= 64 || map_index2 >= 64
+      if (mapi1 >= 64 || mapi2 >= 64
 	  ||
-	  map_index3 >= 64 || map_index4 >= 64) {
+	  mapi3 >= 64 || mapi4 >= 64) {
 	delete[] temp_buffer;
 	return -1;
       }
 
-      p[plaintext_index++] = (unsigned char)(map_index1 << 2) | (unsigned char)(map_index2 >> 4);
-      p[plaintext_index++] = (unsigned char)(map_index2 << 4) | (unsigned char)(map_index3 >> 2);
-      p[plaintext_index++] = (unsigned char)(map_index3 << 6) | map_index4;
+      p[p_index++] = (unsigned char)(mapi1 << 2) | (unsigned char)(mapi2 >> 4);
+      p[p_index++] = (unsigned char)(mapi2 << 4) | (unsigned char)(mapi3 >> 2);
+      p[p_index++] = (unsigned char)(mapi3 << 6) | mapi4;
 
       entry = nextAddress(entry, 4);
     }
 
     delete[] temp_buffer;
-    plaintext_index -= count_for_addition;
-    return plaintext_index;
+    p_index -= count_for_addition;
+    return p_index;
   }
 
 

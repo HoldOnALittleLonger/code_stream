@@ -3,12 +3,9 @@
 #include<cstring>
 
 //  DATA SOURCE
-//    DFFILE  - data from file
-//    DFSTDIN - data from stdin
-//    DFCMD   - data from command line
-#define DFFILE    0
-#define DFSTDIN   1
-#define DFCMD     2
+//    dinputs::DFFILE  - data from file
+//    dinputs::DFSTDIN - data from stdin
+//    dinputs::DFCMD   - data from command line
 
 //  codestream_main - codestream object
 codestream::Codestream codestream_main;
@@ -18,15 +15,56 @@ codestream::Codestream codestream_main;
 //    #  would changes this variable.
 unsigned short main_error_code(ENOE);
 
-//  data_src - stream pointer.
-static std::istream *data_src(nullptr);
-
 //  if_f_got - just a flag to distingulish DATA SOURCE.
 static unsigned char if_f_got(0);
 
-//  previous declare.
-static int main_create_stream(unsigned short, const char *);
+//  dinputs - data input stream for main.
+//    i dint constructure a new class,just
+//    use some variables and functions to 
+//    abstract it.
+//    dinputs_XX functions would as abstract
+//    interfaces.
+namespace dinputs {
 
+  unsigned short dinputs_init(unsigned short data_from, const char *t);
+  size_t dinputs_read(char *dest, size_t n);
+  void dinputs_close(void);
+  unsigned short dinputs_iseof(void);
+  unsigned short dinputs_isbad(void);
+  unsigned short dinputs_isavailable(void);
+
+  namespace __dis {
+    enum {
+      DFFILE,
+      DFSTDIN,
+      DFCMD
+    };
+
+    static char data_src(-1);
+
+    static std::unique_ptr<std::ifstream> dis_f(nullptr);
+    static std::istream *dis_stdin(nullptr);
+
+    enum { CMD_MAX_SIZE = 256 };
+    static std::unique_ptr<char> dis_cmd(nullptr);
+    static size_t count_dis_cmd(0);
+    static size_t length_dis_cmd(0);
+
+    unsigned short init_dis(unsigned short data_from, const char *t);
+    size_t read_dis(char *dest, size_t n);
+    void close_dis(void);
+    unsigned short iseof_dis(void);
+    unsigned short isbad_dis(void);
+    unsigned short isalive_dis(void);
+
+  }  //  end of __dis
+
+
+
+  using __dis::DFFILE;
+  using __dis::DFSTDIN;
+  using __dis::DFCMD;
+}  //  end of dinputs
 
 //  main_optionf_eandd - do some prepare works for encode or decode.
 //    @target : const char pointer,it should be the same char pointer
@@ -35,7 +73,7 @@ static int main_create_stream(unsigned short, const char *);
 //             returned.
 int main_optionf_eandd(const char *target)
 {
-  unsigned short src_from(DFCMD);
+  unsigned short src_from(dinputs::DFCMD);
   if (!target) {
     main_error_code = EOPTION;
     return -1;
@@ -43,14 +81,21 @@ int main_optionf_eandd(const char *target)
 
   //  determine where data from.
   if (!strcmp(target, "-") && if_f_got)
-    src_from = DFSTDIN;
+    src_from = dinputs::DFSTDIN;
   else if (if_f_got)
-    src_from = DFFILE;
+    src_from = dinputs::DFFILE;
 
-  main_error_code = ENOE;
   //  try to create stream.
-  if (main_create_stream(src_from, target) < 0)
+  (void)dinputs::dinputs_init(src_from, target);
+  if (!dinputs::dinputs_isavailable()) {
+    //  maybe target is too longer in cmd-line mode,
+    //  but dont use error code to distingulish 
+    //  file-permission or no enough space.
+    //  in face,cmd-line mode is possible has
+    //  EFPERMISSION error.
+    main_error_code = EFPERMISSION;
     return -1;
+  }
 
   main_error_code = ENOE;
   //  install procedures from @toinstall[].
@@ -87,40 +132,37 @@ int main_coding(ops_wrapper::gcstruct *gcs, ssize_t once_read)
   }
 
   std::cout.flush();  //  flush stream before work.
-
   do {
     //  read data from stream.
-    data_src->read(gcs->buff1, once_read);
-    record_length = data_src->gcount();
+    record_length = dinputs::dinputs_read(gcs->buff1, once_read);
     if (record_length == 0)
-      if (data_src->eof()) {
+      if (dinputs::dinputs_iseof()) {
 	break;
-      } else if (data_src->bad() || data_src->fail()) {
+      } else if (dinputs::dinputs_isbad()) {
 	main_error_code = ECODING;
 	break;
       }
-    
+
     //  ready to coding.
     gcs->length_of_buff1 = record_length;
-    do {
-      codestream_main.coding(static_cast<void *>(gcs));
-      codestream_main.waitForStateMove();
-      if (codestream_main.is_shutdown())
-	break;
-      else if (!codestream_main.is_execsuccess()) {
-	std::cerr<<codestream_main.processErrorExplain()<<std::endl;
-	try {
-	  codestream_main.programErrorRecover();
-	} catch (std::string &s) {
-	  std::cerr<<s<<std::endl;
-	  main_error_code = ECODING;
-	  goto main_coding_exit;
-	}
-      } else {
-	std::cerr<<codestream_main.processStateExplain()<<std::endl;
+    codestream_main.coding(static_cast<void *>(gcs));
+    codestream_main.waitForStateMove();
+    if (codestream_main.is_shutdown())
+      goto output_content;
+    else if (!codestream_main.is_execsuccess()) {
+      std::cerr<<codestream_main.processErrorExplain()<<std::endl;
+      try {
+	codestream_main.programErrorRecover();
+      } catch (std::string &s) {
+	std::cerr<<s<<std::endl;
+	main_error_code = ECODING;
+	goto main_coding_exit;
       }
-    } while (1);
+    } else {
+      std::cerr<<codestream_main.processStateExplain()<<std::endl;
+    }
 
+  output_content:
     //  output
     std::cout.write(gcs->buff2, gcs->length_of_buff2);
     std::cout.flush();
@@ -130,66 +172,6 @@ int main_coding(ops_wrapper::gcstruct *gcs, ssize_t once_read)
  main_coding_exit:
   return (main_error_code == ENOE) ? 0 : -1;
 }
-
-
-
-//  main_create_stream - create stream for reading data.
-//    @which_case : indicates which case is it.
-//                  DFFILE | DFSTDIN | DFCMD
-//    @t          : the target string.it maybe data string or file name.
-//    return - return 0 if no error occurs,otherwise return -1.
-//    #  this function would sets data_src pointer,it is a 
-//    #  std::istream pointer.
-static int main_create_stream(unsigned short which_case, const char *t)
-{
-  switch (which_case) {
-  case DFFILE:
-    {
-      static std::unique_ptr<std::ifstream> fp(nullptr);
-      std::ifstream *f = new std::ifstream;
-      data_src = dynamic_cast<std::istream *>(f);
-      if (!data_src) {
-	main_error_code = EINIT;
-	break;
-      }
-
-      fp.reset(f);
-
-      //  try to open file.
-      //  because system would close file automatically after exit,
-      //  so dont registe close function at exit.
-      f->open(t, std::ios_base::in);
-      if (!f->is_open())
-	main_error_code = EFPERMISSION;
-    }
-    break;
-    
-  case DFSTDIN:
-    data_src = dynamic_cast<std::istream *>(&std::cin);
-    if (!data_src)
-      main_error_code = EINIT;
-    break;
-      
-  case DFCMD:
-    data_src = dynamic_cast<std::istream *>(&std::cin);
-    if (!data_src) {
-      main_error_code = EINIT;
-      break;
-    }
-
-    //  put characters in @t back to std::cin.
-    //  recursive insert would make correct order.
-    for (short int last(strlen(t) - 1); last >= 0; --last)
-      data_src->putback(t[last]);
-    break;
-
-  default:
-    main_error_code = EOPTION;
-  }
-
-  return (main_error_code == ENOE) ? 0 : -1;
-}
-
 
 //  main_optionf_h - print help messages.
 void main_optionf_h(void)
@@ -255,4 +237,171 @@ void main_output_error_msg(decltype(main_error_code) e)
   }
 
   #undef CMESTR
+}
+
+
+namespace dinputs {
+  unsigned short dinputs_init(unsigned short data_from, const char *t)
+  {
+    return __dis::init_dis(data_from, t);
+  }
+
+  size_t dinputs_read(char *dest, size_t n)
+  {
+    return __dis::read_dis(dest, n);
+  }
+
+  void dinputs_close(void)
+  {
+    __dis::close_dis();
+  }
+
+  unsigned short dinputs_iseof(void)
+  {
+    return __dis::iseof_dis();
+  }
+
+  unsigned short dinputs_isbad(void)
+  {
+    return __dis::isbad_dis();
+  }
+
+  unsigned short dinputs_isavailable(void)
+  {
+    return __dis::isalive_dis();
+  }
+
+  namespace __dis {
+    //  init_dis - do initialization to dinputs.
+    //    @data_from : where data from -
+    //                   DFFILE | DFSTDIN | DFCMD
+    //    @t : target.
+    //  return - 1 in sucessed,0 in failed.
+    inline
+    unsigned short init_dis(unsigned short data_from, const char *t) 
+    {
+      std::ifstream *f(nullptr);
+
+      switch (data_from) {
+      case DFFILE:
+	f = new std::ifstream;
+	if (!f)
+	  return 0;
+	dis_f.reset(f);
+	dis_f->open(t, std::ios_base::in);
+	if (!dis_f->is_open()) {
+	  dis_f.reset(nullptr);
+	  return 0;
+	}
+	break;
+
+      case DFSTDIN:
+	dis_stdin = &std::cin;
+	break;
+
+      case DFCMD:
+	{
+	  //  because no any method can retrun a
+	  //  non-const pointer from unique_str,
+	  //  thus declare @b in initialization stage.
+	  char *b(new char[CMD_MAX_SIZE]);
+	  if (!b)
+	    return 0;
+	  length_dis_cmd = strlen(t);
+	  if (length_dis_cmd > CMD_MAX_SIZE)  //  there has a length limiter.
+	    return 0;
+	  memcpy(b, t, length_dis_cmd);
+	  dis_cmd.reset(b);
+	}
+	break;
+
+      default:
+	return 0;
+      }
+
+      data_src = data_from;
+      return 1;
+    }
+
+    //  read_dis - read from dinputs.
+    //    @dest : where the data was readed to save.
+    //    @n : size to read.
+    //    return - readed size.
+    //    #  it works should alike cin.read().
+    inline
+    size_t read_dis(char *dest, size_t n)
+    {
+      if (!dest)
+	return 0;
+
+      //  DFFILE and DFSTDIN almost same case,
+      //  but input stream is different.
+      switch (data_src) {
+      case DFFILE:
+	dis_f->read(dest, n);
+	return dis_f->gcount();
+
+      case DFSTDIN:
+	dis_stdin->read(dest, n);
+	return dis_stdin->gcount();
+
+      case DFCMD:
+	if (iseof_dis())
+	  return 0;
+	n = (length_dis_cmd < n) ? length_dis_cmd : n;
+	memcpy(dest, dis_cmd.get() + count_dis_cmd, n);
+	count_dis_cmd += n;
+	length_dis_cmd -= n;
+	return n;
+      default:;
+      }
+
+      return 0;
+    }
+
+    //  close_dis - close dinputs.
+    //    #  closing,dont recycle anything.
+    inline
+    void close_dis(void)
+    {
+      if (dis_f)
+	dis_f->close();
+      else if (dis_stdin)
+	dis_stdin->setstate(std::ios_base::eofbit);
+      else
+	length_dis_cmd = 0, count_dis_cmd = CMD_MAX_SIZE;
+    }
+
+    //  iseof_dis - if no more.
+    inline
+    unsigned short iseof_dis(void)
+    {
+      if (dis_f)
+	return dis_f->eof();
+      else if (dis_stdin)
+	return dis_stdin->eof();
+      else
+	return !length_dis_cmd;
+    }
+
+    //  isbad_dis - if bad stream.
+    inline
+    unsigned short isbad_dis(void)
+    {
+      if (dis_f)
+	return dis_f->bad() || dis_f->fail();
+      else if (dis_stdin)
+	return dis_stdin->bad() || dis_stdin->fail();
+      else
+	return 0;
+    }
+
+    //  isalive_dis - if dinputs is available.
+    inline
+    unsigned short isalive_dis(void)
+    {
+      return data_src != -1;
+    }
+
+  }
 }

@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
   (gcscharps[0]).reset(gcs.buff1);
   (gcscharps[1]).reset(gcs.buff2);
 
-  //  analyse options.
+  //  analysis options.
   while ((option = getopt(argc, argv, OPTION_STRING)) != -1) {
     switch (option) {
     case 'k':

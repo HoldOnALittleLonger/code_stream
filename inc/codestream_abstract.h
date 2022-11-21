@@ -1,5 +1,3 @@
-
-
 #ifndef _CODESTREAM_ABSTRACT_H_
 #define _CODESTREAM_ABSTRACT_H_
 

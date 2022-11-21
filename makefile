@@ -41,6 +41,7 @@ codestream_libv: $(STATIC_OBJS) $(LIBS)
 	$(CC) $(CCFLAGS) -o $@ $(STATIC_OBJS) -L. $(LLIBS) $(LCLIBS)
 	@echo "!!! Have to move lib files $(LIBS) into /lib,and then run ldconfig."
 	@mv $@ bin/
+	@echo "moved codestream into bin/"
 
 help:
 	@echo "Usage : make codestream | make codestream_libv"

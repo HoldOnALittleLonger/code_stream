@@ -1,5 +1,3 @@
-
-
 #include"codestream_abstract.h"
 
 namespace codestream {

@@ -2,7 +2,6 @@
 #define _OPS_WRAPPER_H_
 
 #include<cstddef>
-#include<exception>
 
 //  OTM_INIT_EXCEPT - occur exception while init otm 
 #define OTM_INIT_EXCEPT 1
