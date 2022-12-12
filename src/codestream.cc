@@ -89,8 +89,10 @@ int main_coding(ops_wrapper::gcstruct *gcs, ssize_t once_read)
 
   std::cout.flush();  //  flush stream before work.
   do {
+    //    std::cerr<<"Debug: ready to reading"<<std::endl;
     //  read data from stream.
     record_length = g_Csdsin.read(gcs->buff1, once_read);
+    //    std::cerr<<"Debug: rl = "<<record_length<<std::endl;
     if (record_length == 0)
       if (g_Csdsin.iseof()) {
 	break;

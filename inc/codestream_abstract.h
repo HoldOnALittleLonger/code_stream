@@ -122,6 +122,7 @@ namespace codestream {
 
   };
 
+  inline
   Codestream &getGlobalCodestreamRef(void)
   {
     static Codestream codestream;
