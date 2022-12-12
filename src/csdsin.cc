@@ -5,13 +5,16 @@
 namespace csds {
 
 
-  Csdsin::Csdsin() : _csdsins(&std::cin), _csdsinb("nil"), _init(0), _df(DFSTDIN)
+  Csdsin::Csdsin() : _csdsinf(nullptr), _csdsins(&std::cin), _csdsinb("nil"), _init(0), _df(DFSTDIN)
   {
+    _csdsinb.clear();
   }
 
   Csdsin::~Csdsin()
   {
     _init = 0;
+    delete _csdsinf;
+    _csdsinf = nullptr;
   }
 
   Csdsin &operator>>(Csdsin &csdsin, char &c)
@@ -89,7 +92,7 @@ namespace csds {
       _csdsinf->close();
       break;
     case DFSTDIN:
-      break;
+      _csdsins->setstate(std::ios_base::eofbit);
     case DFCMD:
       _csdsinb.clear();
     }

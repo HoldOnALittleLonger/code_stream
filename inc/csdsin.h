@@ -39,7 +39,7 @@ namespace csds {
       case DFCMD:
 	return _csdsinb.empty();
       default:
-	return 0;
+	return _csdsins->eof();
       }
     }
     unsigned short isinit(void)
