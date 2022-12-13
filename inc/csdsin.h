@@ -2,10 +2,11 @@
 #define _CSDSIN_H_
 
 #include<cstddef>
-#include<string>
 #include<cstring>
+#include<string>
 #include<memory>
 #include<fstream>
+
 
 namespace csds {
 
@@ -27,46 +28,52 @@ namespace csds {
 
     void initCsdsin(dfrom sK, const char *data_str);
     void closeCsdsin(void);
-    std::size_t read(char *dest, std::size_t n);
+    std::size_t readCsdsin(char *dest, std::size_t n);
 
-    friend Csdsin &operator>>(Csdsin &, char &);
-
-    unsigned short iseof(void)
+    bool iseof(void)
     {
       switch (_df) {
       case DFFILE:
-	return _csdsinf->eof();
+	return dynamic_cast<std::ifstream *>(_csdsin)->eof();
+      case DFSTDIN:
+	return _csdsin->eof();
       case DFCMD:
 	return _csdsinb.empty();
       default:
-	return _csdsins->eof();
+	return false;
       }
     }
-    unsigned short isinit(void)
+    bool isinit(void)
     {
       return _init;
     }
-    unsigned short isfail(void)
-    {
-      if (_df == DFFILE)
-	return _csdsinf->fail();
-      return 0;
-    }
-    unsigned short isbad(void)
+    bool isfail(void)
     {
       switch (_df) {
       case DFFILE:
-	return _csdsinf->bad();
+	return dynamic_cast<std::ifstream *>(_csdsin)->fail();
+      case DFSTDIN:
+	return _csdsin->fail();
+      case DFCMD:;
+      }
+      return false;
+    }
+    bool isbad(void)
+    {
+      switch (_df) {
+      case DFFILE:
+	return dynamic_cast<std::ifstream *>(_csdsin)->bad();
+      case DFSTDIN:
+	return _csdsin->bad();
       case DFCMD:
 	return _csdsinb.empty();
       }
-      return 0;
+      return false;
     }
 
   private:
-    std::ifstream *_csdsinf;  //  for S1
-    std::istream *_csdsins;   //  for S2          
-    std::string _csdsinb;     //  for S3
+    std::istream *_csdsin;  //  for S1 S2
+    std::string _csdsinb;   //  for S3
     dfrom _df;    
     unsigned char _init:1;
   };

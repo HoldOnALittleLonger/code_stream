@@ -1,15 +1,13 @@
-#include"codestream.h"
-#include"csdsin.h"
 #include<memory>
 #include<cstring>
+
+#include"codestream.h"
+#include"csdsin.h"
 
 //  DATA SOURCE
 //    csds::dfrom::DFFILE  - data from file
 //    csds::dfrom::DFSTDIN - data from stdin
 //    csds::dfrom::DFCMD   - data from command line
-
-//  codestream_main - codestream object
-codestream::Codestream codestream_main;
 
 //  main_error_code - explain what error was occured.
 //    #  caller should set it to ENOE before invokes any function which
@@ -56,8 +54,8 @@ int main_optionf_eandd(const char *target)
   main_error_code = ENOE;
   //  install procedures from @toinstall[].
   for (unsigned short i(0); i < FTOINSTALL_NUM; ++i) {
-    codestream_main.installProcedure(toinstall[i]);
-    if (!codestream_main.is_execsuccess()) {
+    g_Codestream.installProcedure(toinstall[i]);
+    if (!g_Codestream.is_execsuccess()) {
       main_error_code = EINIT;
       break;
     }
@@ -91,7 +89,7 @@ int main_coding(ops_wrapper::gcstruct *gcs, ssize_t once_read)
   do {
     //    std::cerr<<"Debug: ready to reading"<<std::endl;
     //  read data from stream.
-    record_length = g_Csdsin.read(gcs->buff1, once_read);
+    record_length = g_Csdsin.readCsdsin(gcs->buff1, once_read);
     //    std::cerr<<"Debug: rl = "<<record_length<<std::endl;
     if (record_length == 0)
       if (g_Csdsin.iseof()) {
@@ -103,21 +101,21 @@ int main_coding(ops_wrapper::gcstruct *gcs, ssize_t once_read)
 
     //  ready to coding.
     gcs->length_of_buff1 = record_length;
-    codestream_main.coding(static_cast<void *>(gcs));
-    codestream_main.waitForStateMove();
-    if (codestream_main.is_shutdown())
+    g_Codestream.coding(static_cast<void *>(gcs));
+    g_Codestream.waitForStateMove();
+    if (g_Codestream.is_shutdown())
       goto output_content;
-    else if (!codestream_main.is_execsuccess()) {
-      std::cerr<<codestream_main.processErrorExplain()<<std::endl;
+    else if (!g_Codestream.is_execsuccess()) {
+      std::cerr<<g_Codestream.processErrorExplain()<<std::endl;
       try {
-	codestream_main.programErrorRecover();
+	g_Codestream.programErrorRecover();
       } catch (std::string &s) {
 	std::cerr<<s<<std::endl;
 	main_error_code = ECODING;
 	goto main_coding_exit;
       }
     } else {
-      std::cerr<<codestream_main.processStateExplain()<<std::endl;
+      std::cerr<<g_Codestream.processStateExplain()<<std::endl;
     }
 
   output_content:

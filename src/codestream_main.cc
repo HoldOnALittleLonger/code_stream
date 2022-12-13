@@ -1,7 +1,9 @@
-#include"codestream.h"
-#include<memory>
 #include<unistd.h>
+
 #include<cstring>
+#include<memory>
+
+#include"codestream.h"
 
 //  toinstall - function array for install.
 void *(*toinstall[FTOINSTALL_NUM])(void *);

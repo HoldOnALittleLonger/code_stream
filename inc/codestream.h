@@ -1,12 +1,13 @@
 #ifndef _CODESTREAM_H_
 #define _CODESTREAM_H_
 
-#include"ops_wrapper.h"
-#include"codestream_abstract.h"
 #include<cstdlib>
 #include<fstream>
 #include<iostream>
 #include<concepts>
+
+#include"codestream_abstract.h"
+#include"ops_wrapper.h"
 
 //  OPTION_STRING
 //    -k - key value

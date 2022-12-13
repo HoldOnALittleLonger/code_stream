@@ -1,76 +1,59 @@
-#include"csdsin.h"
 #include<iostream>
 
+#include"csdsin.h"
 
 namespace csds {
 
 
-  Csdsin::Csdsin() : _csdsinf(nullptr), _csdsins(&std::cin), _csdsinb("nil"), _init(0), _df(DFSTDIN)
+  Csdsin::Csdsin() : _csdsin(nullptr), _csdsinb("nil"), _df(DFSTDIN), _init(0)
   {
     _csdsinb.clear();
   }
 
   Csdsin::~Csdsin()
   {
-    _init = 0;
-    delete _csdsinf;
-    _csdsinf = nullptr;
+    _init &= 0;
+    _df = DFSTDIN;
+    if (_df == DFFILE)
+      delete _csdsin;
+    _csdsin = nullptr;
   }
 
-  Csdsin &operator>>(Csdsin &csdsin, char &c)
-  {
-    switch (csdsin._df) {
-    case DFFILE:
-      *(csdsin._csdsinf)>>c;
-      break;
-
-    case DFSTDIN:
-      *(csdsin._csdsins)>>c;
-      break;
-
-    case DFCMD:
-      if (csdsin._csdsinb.empty())
-	break;
-      c = csdsin._csdsinb.at(0);
-      if (csdsin._csdsinb.length() - 1 > 0)
-	csdsin._csdsinb = csdsin._csdsinb.substr(1, csdsin._csdsinb.length() - 1);
-      else
-	csdsin._csdsinb.clear();
-      break;
-    }
-    
-    return csdsin;
-  }
-
+  //  initCsdsin - initialize Csdsin.
+  //    @sK       : indicates which situation.
+  //    @data_str : it is effective only sK = S1 or sK = S3
   void Csdsin::initCsdsin(dfrom sK, const char *data_str = nullptr)
   {
     auto lf_fillString = [this, data_str](void) -> void
       {
-	std::size_t sl(strlen(data_str));
-	closeCsdsin();
-	if (sl) 
-	  for (decltype(sl) e(0); e < sl; ++e)
-	    _csdsinb+=data_str[e];
+	if (data_str) {
+	  closeCsdsin();
+	  _csdsinb = data_str;
+	}
       };
+    _df = sK;
 
     //  just init once
     if (_init)
       return;
 
-    switch (sK) {
+    switch (_df) {
     case DFFILE:
-      _csdsinf = new std::ifstream;
-      if (!_csdsinf) {
-	_init = 0;
-	break;
+      {
+	std::ifstream *readFile = new std::ifstream;
+	if (!readFile) {
+	  _init &= 0;
+	  break;
+	}
+	readFile->open(data_str, std::ios_base::in);
+	_init = readFile->is_open() ? 1 : 0;
+	_csdsin = dynamic_cast<std::istream *>(readFile);
       }
-      _csdsinf->open(data_str, std::ios_base::in);
-      _init = _csdsinf->is_open() ? 1 : 0;
       break;
 
     case DFSTDIN:
-      _csdsins = &std::cin;
-      _init = 1;
+      _csdsin = &std::cin;
+      _init ^= 1;
       break;
 
     case DFCMD:
@@ -79,42 +62,61 @@ namespace csds {
       break;
 
     default:  //  undefined situation
-      _init = 0;
+      _init &= 0;
     }
 
-    _df = sK;
   }
 
+  //  closeCsdsin - close stream.
+  //    #  after closed,the stream will be ineffeciency.
   void Csdsin::closeCsdsin(void)
   {
+    if (!_init)  //  refuse close uninit object
+      return;
+
     switch (_df) {
     case DFFILE:
-      _csdsinf->close();
+      dynamic_cast<std::ifstream *>(_csdsin)->close();
       break;
     case DFSTDIN:
-      _csdsins->setstate(std::ios_base::eofbit);
+      _csdsin->setstate(std::ios_base::eofbit);
+      break;
     case DFCMD:
       _csdsinb.clear();
     }
+
+    _df = DFSTDIN;
+    _init &= 0;
   }
 
-  std::size_t Csdsin::read(char *dest, std::size_t n)
+  //  readCsdsin - read stream.
+  //    @dest : destination for data to write.
+  //    @n    : size to read.
+  //    return - length of record which had been read.
+  std::size_t Csdsin::readCsdsin(char *dest, std::size_t n)
   {
+    if (!_init)  //  shouldnt read uninit stream
+      return 0;
+
     if (_df == DFCMD) {
-      if (_csdsinb.empty())
-	return 0;
-      ssize_t count(0);
-      do {
-	(*this)>>dest[count++];
-	--n;
-      } while (!_csdsinb.empty() && n);
+      std::size_t count(0);
+      if (_csdsinb.empty())  //  do nothing if there is null
+	return count;
+
+      count = _csdsinb.copy(dest, n, 0);
+      if (!count) {
+	_csdsinb.clear();
+      } else
+	_csdsinb = _csdsinb.substr(count, _csdsinb.length() - count);
+      //  delete the parts which just readed
+      
       return count;
     } else if (_df == DFFILE) {
-      _csdsinf->read(dest, n);
-      return _csdsinf->gcount();
+      dynamic_cast<std::ifstream *>(_csdsin)->read(dest, n);
+      return dynamic_cast<std::ifstream *>(_csdsin)->gcount();
     } else {
-      _csdsins->read(dest, n);
-      return _csdsins->gcount();
+      _csdsin->read(dest, n);
+      return _csdsin->gcount();
     }
   }
 

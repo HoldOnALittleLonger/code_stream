@@ -1,16 +1,17 @@
 #ifndef _CODESTREAM_ABSTRACT_H_
 #define _CODESTREAM_ABSTRACT_H_
 
+#include<cstddef>
 #include<functional>
 #include<vector>
 #include<mutex>
 #include<bitset>
-#include<cstddef>
 #include<string>
-#include<cstdbool>
 #include<thread>
 #include<condition_variable>
 #include<exception>
+
+#define g_Codestream codestream::getGlobalCodestreamRef()
 
 namespace codestream {
 
@@ -18,7 +19,7 @@ namespace codestream {
   using opip = short;
   using opci = aindex;
 
-  class Codestream {
+  class Codestream final {
 
   private:
 
@@ -93,6 +94,10 @@ namespace codestream {
     Codestream();
     ~Codestream();
 
+    Codestream(const Codestream &) = delete;
+    Codestream &operator=(const Codestream &) = delete;
+    Codestream(Codestream &&) = delete;
+    Codestream &operator=(Codestream &&) = delete;
 
     void coding(void *vec);	// a thread wrapper for startCode()
     void stopCode(void);

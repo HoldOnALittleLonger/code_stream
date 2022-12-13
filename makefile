@@ -18,10 +18,10 @@ LCLIBS := $(patsubst %, -l%, $(CLIBS))
 OBJS += operation_definition.o
 OBJS += ops_wrapper.o
 OBJS += codestream_abstract.o
-OBJS += csdsin.o
 
 STATIC_OBJS += codestream_main.o
 STATIC_OBJS += codestream.o
+STATIC_OBJS += csdsin.o
 
 LIBS += libops.so
 LIBS += libopswrapper.so

@@ -233,6 +233,37 @@ Structure:
 	<memory>
 		C++ smart pointer to manage objects.
 
+	#HEADFILE
+	<csdsin.h>
+		nested stream class for read data from FILE | STDIN | CMD
+		namespace csds;
+		
+		enum dfrom : unsigned char {
+			   DFFILE = 0,  //  S1
+			   DFSTDIN,     //  S2
+			   DFCMD        //  S3
+		};
+
+		Csdsin::_csdsin  - a pointer of type std::istream,
+				         the pointer as an entrance for
+				  	 std::cin or std::ifstream obj.
+		Csdsin::_csdsinb - an object of type std::string.
+				       	 suffix 'b' means that it will
+					 as a buffer to be used.
+		Csdsin::_df      - enumberator of dfrom.
+		Csdsin::_init    - bit field has 1 bit,as a flag.
+
+		Csdsin::iseof()  - if EOF
+		Csdsin::isfail() - if FAIL
+		Csdsin::isbad()  - if BAD
+
+		Csdsin::closeCsdsin() - close stream.after closed,
+				        shouldnt use it again until
+					next initialization.
+		Csdsin::readCsdsin()  - read data from stream and
+				        write into buffer.
+		Csdsin::initCsdsin()  - init Csdsin object.
+
 	#MAINFILE
 	codestream :
 		The designing of codestream.
