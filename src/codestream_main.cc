@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     return -EOPTION;
   }
 
-  memset(toinstall, 0, sizeof(void *(*)(void *)) * FTOINSTALL_NUM);
+  memset(::toinstall, 0, sizeof(void *(*)(void *)) * FTOINSTALL_NUM);
   memset(&gcs, 0, sizeof(gcs));
 
   gcs.buff1 = new char[GCS_BUFF_SIZE];
@@ -47,22 +47,22 @@ int main(int argc, char *argv[])
   (gcscharps[1]).reset(gcs.buff2);
 
   //  analysis options.
-  while ((option = getopt(argc, argv, OPTION_STRING)) != -1) {
+  while ((option = getopt(argc, argv, ::OPTION_STRING)) != -1) {
     switch (option) {
     case 'k':
-      main_error_code = ENOE;
+      ::main_error_code = ENOE;
       if (main_optionf_k(optarg) < 0) {
-	main_output_error_msg(main_error_code);
-	return main_error_code * -1;
+	main_output_error_msg(::main_error_code);
+	return ::main_error_code * -1;
       }
       break;
 
     case 'e':
       if (!prevent_ef) {
 	prevent_ef = 1;
-	toinstall[0] = ops_wrapper::ops_wrapper_otm_encode;
-	toinstall[1] = ops_wrapper::ops_wrapper_gcwt;
-	toinstall[2] = ops_wrapper::ops_wrapper_base64_encode;
+	::toinstall[0] = ops_wrapper::ops_wrapper_otm_encode;
+	::toinstall[1] = ops_wrapper::ops_wrapper_gcwt;
+	::toinstall[2] = ops_wrapper::ops_wrapper_base64_encode;
 	cmdarg = optarg;
 	once_read = ENCODE_INPUT;
       }
@@ -73,9 +73,9 @@ int main(int argc, char *argv[])
 	prevent_ef = 1;
 	//  have to install decode function in recursive order to
 	//  encode.
-	toinstall[0] = ops_wrapper::ops_wrapper_base64_decode;
-	toinstall[1] = ops_wrapper::ops_wrapper_gcwt;
-	toinstall[2] = ops_wrapper::ops_wrapper_otm_decode;
+	::toinstall[0] = ops_wrapper::ops_wrapper_base64_decode;
+	::toinstall[1] = ops_wrapper::ops_wrapper_gcwt;
+	::toinstall[2] = ops_wrapper::ops_wrapper_otm_decode;
 	cmdarg = optarg;
 	once_read = DECODE_INPUT;
       }
@@ -128,20 +128,20 @@ int main(int argc, char *argv[])
 	return -EINIT;
     }
 
-    main_error_code = ENOE;
+    ::main_error_code = ENOE;
     if (main_optionf_eandd(cmdarg) < 0) {
-      main_output_error_msg(main_error_code);
-      return main_error_code * -1;
+      main_output_error_msg(::main_error_code);
+      return ::main_error_code * -1;
     }
   }
   else
     return -EOPTION;
   
   //  already to coding.
-  main_error_code = ENOE;
+  ::main_error_code = ENOE;
   if (main_coding(&gcs, once_read) < 0) {
-    main_output_error_msg(main_error_code);
-    return main_error_code * -1;
+    main_output_error_msg(::main_error_code);
+    return ::main_error_code * -1;
   }
 
   return 0;

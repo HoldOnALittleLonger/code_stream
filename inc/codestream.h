@@ -9,13 +9,8 @@
 #include"codestream_abstract.h"
 #include"ops_wrapper.h"
 
-//  OPTION_STRING
-//    -k - key value
-//    -e - encode mode
-//    -d - decode mode
-//    -f - from file
-//    -h - print help message
-#define OPTION_STRING "k:e:d:fh"
+//  Options string
+extern const char *const OPTION_STRING;
 
 //  ERROR CODE
 //    EINVALIDKEY  - invalid key
@@ -34,10 +29,11 @@ enum {
   ENOE
 };
 
-#define GCS_BUFF_SIZE  4096
-#define FTOINSTALL_NUM 3
+//  Buffer size
+constexpr unsigned int GCS_BUFF_SIZE(4096);
+//  Number of functions to be installed
+constexpr unsigned short FTOINSTALL_NUM(3);
 
-extern codestream::Codestream codestream_main;
 extern unsigned short main_error_code;
 extern void *(*toinstall[FTOINSTALL_NUM])(void *);
 

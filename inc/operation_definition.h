@@ -20,11 +20,9 @@ namespace otm {
 
   struct one_two_map {
 
-#define R_TEXT "XJwd!fGZib<l,)Opq|(tuvCayhSnERkm"
-#define Q_TEXT "xbedPfvhSzW+-1m}?@#tQ&c(%Hsq;a<>"
+    static constexpr char _R_TEXT[]{"XJwd!fGZib<l,)Opq|(tuvCayhSnERkm"};
+    static constexpr char _Q_TEXT[]{"xbedPfvhSzW+-1m}?@#tQ&c(%Hsq;a<>"};
 
-    const char *_const_q_text;
-    const char *_const_r_text;
     const unsigned int _scale;
     unsigned char *_q_text;
     unsigned char *_r_text;
@@ -32,36 +30,32 @@ namespace otm {
     unsigned int _division;
     unsigned short _resort;
     
-    one_two_map() noexcept(false)
-    : _const_q_text((const char *)Q_TEXT),
-      _const_r_text((const char *)R_TEXT),
-      _scale(7)
+    one_two_map() noexcept(false) : _scale(7)
     {
       size_t text_length(0);
 
       // copy keyword string.
-      text_length = strlen(_const_q_text);
+      text_length = strlen(_Q_TEXT);
       _q_text = new unsigned char[text_length];
       if (!_q_text)
 	throw std::bad_exception();
-      memcpy(_q_text, _const_q_text, text_length);
+      memcpy(_q_text, _Q_TEXT, text_length);
 
-      text_length = strlen(_const_r_text);
+      text_length = strlen(_R_TEXT);
       _r_text = new unsigned char[text_length];
       if (!_r_text)
 	throw std::bad_exception();
-      memcpy(_r_text, _const_r_text, text_length);
+      memcpy(_r_text, _R_TEXT, text_length);
 
       // set env
       _division = _text_length = text_length;
       _resort = 0;
     }
 
-    one_two_map(const struct one_two_map &otm) =delete;
-    one_two_map(struct one_two_map &&otm) =delete;
-
-#undef Q_TEXT
-#undef R_TEXT
+    one_two_map(const struct one_two_map &otm) = delete;
+    one_two_map(struct one_two_map &&otm) = delete;
+    one_two_map &operator=(const one_two_map &) = delete;
+    one_two_map &operator=(one_two_map &&) = delete;
 
     ~one_two_map()
     {
@@ -97,8 +91,7 @@ namespace base64 {
 
   struct base64_coding {
 
-#define BASE64_MAPPING "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-
+    static constexpr char BASE64_MAPPING[]{"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"};
     const char *_base64_mapping;
 
     base64_coding() : _base64_mapping(BASE64_MAPPING) { }
@@ -130,6 +123,11 @@ namespace base64 {
 			 void *ciphertext, size_t ciphertext_size);
     ssize_t base64Decode(const void *ciphertext, size_t plaintext_length,
 			 void *plaintext, size_t plaintext_size);
+
+    base64_coding(const base64_coding &) = delete;
+    base64_coding &operator=(const base64_coding &) = delete;
+    base64_coding(base64_coding &&) = delete;
+    base64_coding &operator=(base64_coding &&) = delete;
   };
 
   using base64_object = struct base64_coding;

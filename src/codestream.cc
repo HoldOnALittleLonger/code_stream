@@ -4,11 +4,6 @@
 #include"codestream.h"
 #include"csdsin.h"
 
-//  DATA SOURCE
-//    csds::dfrom::DFFILE  - data from file
-//    csds::dfrom::DFSTDIN - data from stdin
-//    csds::dfrom::DFCMD   - data from command line
-
 //  main_error_code - explain what error was occured.
 //    #  caller should set it to ENOE before invokes any function which
 //    #  would changes this variable.
@@ -17,8 +12,13 @@ unsigned short main_error_code(ENOE);
 //  if_f_got - just a flag to distingulish DATA SOURCE.
 static unsigned char if_f_got(0);
 
-#define g_Csdsin csds::getGlobalCsdsinRef()
-
+//  OPTION_STRING
+//    -k - key value
+//    -e - encode mode
+//    -d - decode mode
+//    -f - from file
+//    -h - print help message
+const char *const OPTION_STRING("k:e:d:fh");
 
 //  main_optionf_eandd - do some prepare works for encode or decode.
 //    @target : const char pointer,it should be the same char pointer
@@ -29,14 +29,14 @@ int main_optionf_eandd(const char *target)
 {
   csds::dfrom src_from(csds::DFCMD);
   if (!target) {
-    main_error_code = EOPTION;
+    ::main_error_code = EOPTION;
     return -1;
   }
 
   //  determine where data from.
-  if (!strcmp(target, "-") && if_f_got)
+  if (!strcmp(target, "-") && ::if_f_got)
     src_from = csds::DFSTDIN;
-  else if (if_f_got)
+  else if (::if_f_got)
     src_from = csds::DFFILE;
 
   //  try to create stream.
@@ -47,27 +47,27 @@ int main_optionf_eandd(const char *target)
     //  file-permission or no enough space.
     //  in face,cmd-line mode is possible has
     //  EFPERMISSION error.
-    main_error_code = EFPERMISSION;
+    ::main_error_code = EFPERMISSION;
     return -1;
   }
 
-  main_error_code = ENOE;
+  ::main_error_code = ENOE;
   //  install procedures from @toinstall[].
   for (unsigned short i(0); i < FTOINSTALL_NUM; ++i) {
-    g_Codestream.installProcedure(toinstall[i]);
+    g_Codestream.installProcedure(::toinstall[i]);
     if (!g_Codestream.is_execsuccess()) {
-      main_error_code = EINIT;
+      ::main_error_code = EINIT;
       break;
     }
   }
 
-  return (main_error_code == ENOE) ? 0 : -1;
+  return (::main_error_code == ENOE) ? 0 : -1;
 }
 
 //  main_optionf_f - open flag if_f_got.
 void main_optionf_f(void)
 {
-  if_f_got = 1;
+  ::if_f_got = 1;
 }
 
 //  main_coding - procedure to coding.
@@ -81,7 +81,7 @@ int main_coding(ops_wrapper::gcstruct *gcs, ssize_t once_read)
   ssize_t record_length(0);
 
   if (!gcs || !gcs->buff1 || !gcs->buff2) {
-    main_error_code = ENILP;
+    ::main_error_code = ENILP;
     goto main_coding_exit;
   }
 
@@ -92,10 +92,10 @@ int main_coding(ops_wrapper::gcstruct *gcs, ssize_t once_read)
     record_length = g_Csdsin.readCsdsin(gcs->buff1, once_read);
     //    std::cerr<<"Debug: rl = "<<record_length<<std::endl;
     if (record_length == 0)
-      if (g_Csdsin.iseof()) {
+      if (g_Csdsin.iseof()) [[likely]] {
 	break;
       } else if (g_Csdsin.isbad()) {
-	main_error_code = ECODING;
+	::main_error_code = ECODING;
 	break;
       }
 
@@ -103,7 +103,7 @@ int main_coding(ops_wrapper::gcstruct *gcs, ssize_t once_read)
     gcs->length_of_buff1 = record_length;
     g_Codestream.coding(static_cast<void *>(gcs));
     g_Codestream.waitForStateMove();
-    if (g_Codestream.is_shutdown())
+    if (g_Codestream.is_shutdown()) [[likely]]
       goto output_content;
     else if (!g_Codestream.is_execsuccess()) {
       std::cerr<<g_Codestream.processErrorExplain()<<std::endl;
@@ -111,7 +111,7 @@ int main_coding(ops_wrapper::gcstruct *gcs, ssize_t once_read)
 	g_Codestream.programErrorRecover();
       } catch (std::string &s) {
 	std::cerr<<s<<std::endl;
-	main_error_code = ECODING;
+	::main_error_code = ECODING;
 	goto main_coding_exit;
       }
     } else {
@@ -126,7 +126,7 @@ int main_coding(ops_wrapper::gcstruct *gcs, ssize_t once_read)
   } while (1);
 
  main_coding_exit:
-  return (main_error_code == ENOE) ? 0 : -1;
+  return (::main_error_code == ENOE) ? 0 : -1;
 }
 
 //  main_optionf_h - print help messages.
@@ -150,7 +150,7 @@ void main_optionf_h(void)
 
 //  main_output_error_msg - print error messages.
 //    @e : error code.
-void main_output_error_msg(decltype(main_error_code) e)
+void main_output_error_msg(decltype(::main_error_code) e)
 {
   using std::cerr;
   using std::endl;

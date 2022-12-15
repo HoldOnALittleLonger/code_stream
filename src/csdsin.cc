@@ -56,7 +56,7 @@ namespace csds {
       _init ^= 1;
       break;
 
-    case DFCMD:
+    [[likely]] case DFCMD:
       lf_fillString();
       _init = (data_str) ? 1 : 0;
       break;
@@ -98,7 +98,7 @@ namespace csds {
     if (!_init)  //  shouldnt read uninit stream
       return 0;
 
-    if (_df == DFCMD) {
+    if (_df == DFCMD) [[likely]] {
       std::size_t count(0);
       if (_csdsinb.empty())  //  do nothing if there is null
 	return count;

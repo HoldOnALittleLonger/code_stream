@@ -185,6 +185,15 @@ namespace codestream {
   //    !! method will reset system at each time !!
   void Codestream::coding(void *vec)
   {
+    //  dont allow to start a new worker before the latest one was accomplished.
+    bool allowBegin(false);
+    enter_state_save_zone;
+    allowBegin = (_state == CODESTREAM_SHUTDOWN) ? true : false;
+    leave_state_save_zone;
+
+    if (!allowBegin)
+      [[unlikely]] return;
+
     resetCodestream();
 
     /* codestream have to init */

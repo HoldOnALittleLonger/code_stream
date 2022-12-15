@@ -10,6 +10,10 @@
 
 namespace csds {
 
+//  DATA SOURCE
+//    csds::dfrom::DFFILE  - data from file
+//    csds::dfrom::DFSTDIN - data from stdin
+//    csds::dfrom::DFCMD   - data from command line
   enum dfrom : unsigned char {
     DFFILE = 0,
       DFSTDIN,
@@ -87,7 +91,6 @@ namespace csds {
 
 }
 
-
-
+#define g_Csdsin csds::getGlobalCsdsinRef()
 
 #endif  //  end of head

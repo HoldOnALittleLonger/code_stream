@@ -37,6 +37,7 @@ vpath %.h ./inc
 codestream: $(STATIC_OBJS) $(OBJS)
 	$(CC) $(CCFLAGS) -o $@ $^ $(LCLIBS)
 	@mv $@ bin/
+	@echo "moved codestream into bin/"
 
 codestream_libv: $(STATIC_OBJS) $(LIBS)
 	$(CC) $(CCFLAGS) -o $@ $(STATIC_OBJS) -L. $(LLIBS) $(LCLIBS)

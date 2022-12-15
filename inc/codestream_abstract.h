@@ -11,8 +11,6 @@
 #include<condition_variable>
 #include<exception>
 
-#define g_Codestream codestream::getGlobalCodestreamRef()
-
 namespace codestream {
 
   using aindex = size_t;
@@ -136,8 +134,7 @@ namespace codestream {
 
 }
 
-
-
+#define g_Codestream codestream::getGlobalCodestreamRef()
 
 
 
