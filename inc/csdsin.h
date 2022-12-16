@@ -60,8 +60,8 @@ namespace csds {
     //  idenfier for which is-function should be call
     enum ISFUNCspecifier : unsigned char {
       ISF_EOF = 0,
-	ISF_FAIL = 1,
-	ISF_BAD = 2
+	ISF_FAIL,
+	ISF_BAD
     };
 
     //  genric is-func,use @i to distinguish which case it is

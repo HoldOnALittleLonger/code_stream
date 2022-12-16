@@ -104,8 +104,8 @@ namespace ops_wrapper {
   //   #  the difference bewteen encode and decode just at object and 
   //      mehtod is not same.then make an abstract at there to reduce
   //      complexity,but size of code is same.
-  template<class _CType, typename _CFunc>
-  auto generateOPSWrapper(gcstruct *s, _CType &__cref, _CFunc __cfunc)
+  template<class _Tp_CType, typename _Tp_CFunc>
+  static auto generateOPSWrapper(gcstruct *s, _Tp_CType &__cref, _Tp_CFunc __cfunc)
   {
     return [&](void) -> void *
       {
@@ -118,14 +118,20 @@ namespace ops_wrapper {
 	return s;
       };
   }
+  //  !!  I tried to put @s at the enf of arg-list,but received SIGSEGV,and @this of otmEncode
+  //      points to another otm_object.otm_object::_q_text points to an address out of bound.
+  //      but in gdb interaction debugging,__cref == the static otm_object.
+  //      STRANGE
+  //      put @s at end of arg-list,@this of otm_object::otmEncode points to an object in stack
+  //      put @s at first,@this of otm_object::otmEncode points to an object in static segement
 
   //  ops_wrapper_otm_encode - wrapper for otm encode.
   //    @gcs : data struct pointer point to operand.
   //    return - return @gcs if working fine,otherwise,return nullptr.
   void *ops_wrapper_otm_encode(void *gcs)
   {
-    auto f = generateOPSWrapper(static_cast<gcstruct *>(gcs), *ops::otm_bewrapped,
-				&otm::otm_object::otmEncode);
+    auto f = generateOPSWrapper(static_cast<gcstruct *>(gcs),
+				*ops::otm_bewrapped, &otm::otm_object::otmEncode);
     if (!f())
       return nullptr;
     cwer = CWER_OTM;
@@ -137,8 +143,8 @@ namespace ops_wrapper {
   //    return - return @gcs if working fine,otherwise,return nullptr.
   void *ops_wrapper_otm_decode(void *gcs)
   {
-    auto f = generateOPSWrapper(static_cast<gcstruct *>(gcs), *ops::otm_bewrapped,
-				&otm::otm_object::otmDecode);
+    auto f = generateOPSWrapper(static_cast<gcstruct *>(gcs),
+				*ops::otm_bewrapped, &otm::otm_object::otmDecode);
     if (!f())
       return nullptr;
     cwer = CWER_OTM;
@@ -150,8 +156,8 @@ namespace ops_wrapper {
   //    return - return @gcs if working fine,other wise,return nullptr.
   void *ops_wrapper_base64_encode(void *gcs)
   {
-    auto f = generateOPSWrapper(static_cast<gcstruct *>(gcs), *ops::base64_bewrapped,
-				&base64::base64_object::base64Encode);
+    auto f = generateOPSWrapper(static_cast<gcstruct *>(gcs),
+				*ops::base64_bewrapped,	&base64::base64_object::base64Encode);
     if (!f())
       return nullptr;
     cwer = CWER_BASE64;
@@ -163,8 +169,8 @@ namespace ops_wrapper {
   //    return - return @gcs if working fine,other wise,return nullptr.
   void *ops_wrapper_base64_decode(void *gcs)
   {
-    auto f = generateOPSWrapper(static_cast<gcstruct *>(gcs), *ops::base64_bewrapped,
-				&base64::base64_object::base64Decode);
+    auto f = generateOPSWrapper(static_cast<gcstruct *>(gcs),
+				*ops::base64_bewrapped,	&base64::base64_object::base64Decode);
     if (!f())
       return nullptr;
     cwer = CWER_BASE64;

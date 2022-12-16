@@ -195,14 +195,13 @@ Structure:
 		namespace : ops
 
 		//  the objects			  
-		static otm::otm_object *otm_bewrapped = nullptr;
-		static base64::base64_object *base64_bewrapped = nullptr;
+		static std::unique_ptr<otm::otm_object> otm_bewrapped = nullptr;
+		static std::unique_ptr<base64::base64_object> base64_bewrapped = nullptr;
 		
 		//  init function for otm.
 		//  it would be invoked in ops_wrapper_init() with
 		//  gc_keys_ul.otm_key.
 		static void otm_init(unsigned short x);
-
 
 		namespace : owa 
 		//  all ops_wrapped aid function should in this namespace.
@@ -227,7 +226,11 @@ Structure:
 		//  succeed to create them.
 		static void if_wrappers_exist(void) noexcept(false);
 
-		... other definitions.
+		//  return a lambda expression which wraps (__cref.*__cfunc)()
+		//  other external coding work function would calls this function
+		//  to generate such lambda expression.
+		template<class _Tp_CType, typename _Tp_CFunc>
+		static auto generateOPSWrapper(gcstruct *s, _Tp_CType &__cref, _Tp_CFunc __cfunc);
 
 	#HEADFILE
 	<memory>
@@ -256,6 +259,15 @@ Structure:
 		Csdsin::iseof()  - if EOF
 		Csdsin::isfail() - if FAIL
 		Csdsin::isbad()  - if BAD
+
+		Csdsin::genericISFunc() - generic is-function,other external is-function
+					  will calls it with a ISFspecifier.
+					  this function will evaluate hash(ISFspecifier)
+					  and combines the hash with Csdsin::_df to 
+					  distinguish which case now,then it calls
+					  appropriated is-function.
+
+		Csdsin::ISFUNCspecifier { ISF_EOF = 0, ISF_FAIL, ISF_BAD }
 
 		Csdsin::closeCsdsin() - close stream.after closed,
 				        shouldnt use it again until
