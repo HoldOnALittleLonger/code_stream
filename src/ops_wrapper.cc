@@ -88,9 +88,35 @@ namespace ops_wrapper {
   {
     if (!ops::otm_bewrapped)
       throw OTM_INIT_EXCEPT;
-
+    
     if (!ops::base64_bewrapped)
       throw BASE64_INIT_EXCEPT;
+  }
+
+  //  generateOPSWrapper - template for generate a ops_wrapper
+  //    @s       : gcstruct buffer 
+  //    @__cref  : a reference type of class type _CType
+  //    @__cfunc : a pointer point to a class method
+  //    return - a lambda function {
+  //               captures : @s, &@__cref, &@__cfunc
+  //               return - @s
+  //             }
+  //   #  the difference bewteen encode and decode just at object and 
+  //      mehtod is not same.then make an abstract at there to reduce
+  //      complexity,but size of code is same.
+  template<class _CType, typename _CFunc>
+  auto generateOPSWrapper(gcstruct *s, _CType &__cref, _CFunc __cfunc)
+  {
+    return [&](void) -> void *
+      {
+	ssize_t result(0);
+	if (!s)
+	  return nullptr;
+	result = (__cref.*__cfunc)(s->buff1, s->length_of_buff1,
+				  s->buff2, s->size_of_buff2);
+	s->length_of_buff2 = (result > 0) ? result : 0;
+	return s;
+      };
   }
 
   //  ops_wrapper_otm_encode - wrapper for otm encode.
@@ -98,15 +124,12 @@ namespace ops_wrapper {
   //    return - return @gcs if working fine,otherwise,return nullptr.
   void *ops_wrapper_otm_encode(void *gcs)
   {
-    gcstruct *s = static_cast<gcstruct *>(gcs);
-    ssize_t result(0);
-    if (!s)
+    auto f = generateOPSWrapper(static_cast<gcstruct *>(gcs), *ops::otm_bewrapped,
+				&otm::otm_object::otmEncode);
+    if (!f())
       return nullptr;
-    result = ops::otm_bewrapped->otmEncode(s->buff1, s->length_of_buff1,
-					   s->buff2, s->size_of_buff2);
-    s->length_of_buff2 = (result > 0) ? result : 0;
     cwer = CWER_OTM;
-    return s;
+    return gcs;
   }
 
   //  ops_wrapper_otm_decode - wrapper for otm decode.
@@ -114,15 +137,12 @@ namespace ops_wrapper {
   //    return - return @gcs if working fine,otherwise,return nullptr.
   void *ops_wrapper_otm_decode(void *gcs)
   {
-    gcstruct *s = static_cast<gcstruct *>(gcs);
-    ssize_t result(0);
-    if (!s)
+    auto f = generateOPSWrapper(static_cast<gcstruct *>(gcs), *ops::otm_bewrapped,
+				&otm::otm_object::otmDecode);
+    if (!f())
       return nullptr;
-    result = ops::otm_bewrapped->otmDecode(s->buff1, s->length_of_buff1,
-					   s->buff2, s->size_of_buff2);
-    s->length_of_buff2 = (result > 0) ? result : 0;
     cwer = CWER_OTM;
-    return s;
+    return gcs;
   }
 
   //  ops_wrapper_base_encode - wrapper for base64 encode.
@@ -130,15 +150,12 @@ namespace ops_wrapper {
   //    return - return @gcs if working fine,other wise,return nullptr.
   void *ops_wrapper_base64_encode(void *gcs)
   {
-    gcstruct *s = static_cast<gcstruct *>(gcs);
-    ssize_t result(0);
-    if (!s)
+    auto f = generateOPSWrapper(static_cast<gcstruct *>(gcs), *ops::base64_bewrapped,
+				&base64::base64_object::base64Encode);
+    if (!f())
       return nullptr;
-    result = ops::base64_bewrapped->base64Encode(s->buff1, s->length_of_buff1,
-					   s->buff2, s->size_of_buff2);
-    s->length_of_buff2 = (result > 0) ? result : 0;
     cwer = CWER_BASE64;
-    return s;
+    return gcs;
   }
 
   //  ops_wrapper_base_decode - wrapper for base64 decode.
@@ -146,15 +163,12 @@ namespace ops_wrapper {
   //    return - return @gcs if working fine,other wise,return nullptr.
   void *ops_wrapper_base64_decode(void *gcs)
   {
-    gcstruct *s = static_cast<gcstruct *>(gcs);
-    ssize_t result(0);
-    if (!s)
+    auto f = generateOPSWrapper(static_cast<gcstruct *>(gcs), *ops::base64_bewrapped,
+				&base64::base64_object::base64Decode);
+    if (!f())
       return nullptr;
-    result = ops::base64_bewrapped->base64Decode(s->buff1, s->length_of_buff1,
-					   s->buff2, s->size_of_buff2);
-    s->length_of_buff2 = (result > 0) ? result : 0;
     cwer = CWER_BASE64;
-    return s;
+    return gcs;
   }
 
   //  ops_wrapper_gcwt - general code procedure work together 

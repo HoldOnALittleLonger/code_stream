@@ -36,16 +36,7 @@ namespace csds {
 
     bool iseof(void)
     {
-      switch (_df) {
-      case DFFILE:
-	return dynamic_cast<std::ifstream *>(_csdsin)->eof();
-      case DFSTDIN:
-	return _csdsin->eof();
-      case DFCMD:
-	return _csdsinb.empty();
-      default:
-	return false;
-      }
+      return genericISFunc(ISF_EOF);
     }
     bool isinit(void)
     {
@@ -53,26 +44,11 @@ namespace csds {
     }
     bool isfail(void)
     {
-      switch (_df) {
-      case DFFILE:
-	return dynamic_cast<std::ifstream *>(_csdsin)->fail();
-      case DFSTDIN:
-	return _csdsin->fail();
-      case DFCMD:;
-      }
-      return false;
+      return genericISFunc(ISF_FAIL);
     }
     bool isbad(void)
     {
-      switch (_df) {
-      case DFFILE:
-	return dynamic_cast<std::ifstream *>(_csdsin)->bad();
-      case DFSTDIN:
-	return _csdsin->bad();
-      case DFCMD:
-	return _csdsinb.empty();
-      }
-      return false;
+      return genericISFunc(ISF_BAD);
     }
 
   private:
@@ -80,6 +56,16 @@ namespace csds {
     std::string _csdsinb;   //  for S3
     dfrom _df;    
     unsigned char _init:1;
+
+    //  idenfier for which is-function should be call
+    enum ISFUNCspecifier : unsigned char {
+      ISF_EOF = 0,
+	ISF_FAIL = 1,
+	ISF_BAD = 2
+    };
+
+    //  genric is-func,use @i to distinguish which case it is
+    bool genericISFunc(ISFUNCspecifier i);
   };
 
   inline

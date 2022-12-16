@@ -74,7 +74,7 @@ namespace otm {
 
     //  scaleElement - scale @x by multiple _scale
     //    @x : value to scale
-    constexpr unsigned int scaleElement(unsigned char x) 
+    constexpr unsigned int scaleElement(unsigned char x)
     {
       return (x * _scale);
     }

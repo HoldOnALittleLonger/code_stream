@@ -168,7 +168,8 @@ namespace base64 {
   //
   //    return - the second element.
   inline
-  unsigned char base64_coding::second_of(const unsigned char *segment) {
+  unsigned char base64_coding::second_of(const unsigned char *segment)
+  {
     return *(segment + 1);
   }
 

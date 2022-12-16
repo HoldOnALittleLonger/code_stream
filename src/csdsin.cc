@@ -19,6 +19,45 @@ namespace csds {
     _csdsin = nullptr;
   }
 
+  //  genericISFunc - generic is-function
+  //    @i : which case it is { EOF | FAIL | BAD }
+  bool Csdsin::genericISFunc(ISFUNCspecifier i)
+  {
+    auto constexpr hashI = [](unsigned char x) -> unsigned char
+      {
+	return x << 2;
+      };
+
+    switch (_df + hashI(i)) {
+    case DFFILE + hashI(ISF_EOF):
+      return dynamic_cast<std::ifstream *>(_csdsin)->eof();
+
+    case DFFILE + hashI(ISF_FAIL):
+      return dynamic_cast<std::ifstream *>(_csdsin)->fail();
+
+    case DFFILE + hashI(ISF_BAD):
+      return dynamic_cast<std::ifstream *>(_csdsin)->bad();
+
+    case DFSTDIN + hashI(ISF_EOF):
+      return _csdsin->eof();
+
+    case DFSTDIN + hashI(ISF_FAIL):
+      return _csdsin->fail();
+
+    case DFSTDIN + hashI(ISF_BAD):
+      return _csdsin->bad();
+
+    case DFCMD + hashI(ISF_EOF):
+    case DFCMD + hashI(ISF_BAD):
+      return _csdsinb.empty();
+
+    case DFCMD + hashI(ISF_FAIL):
+    default:
+      return false;
+    }
+  }
+
+
   //  initCsdsin - initialize Csdsin.
   //    @sK       : indicates which situation.
   //    @data_str : it is effective only sK = S1 or sK = S3
