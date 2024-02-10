@@ -20,6 +20,21 @@ static unsigned char if_f_got(0);
 //    -h - print help message
 const char *const OPTION_STRING("k:e:d:fh");
 
+//  The Handler for codestream::Codestream limited on file-scope.
+//  Specially defined for this program.
+/*  program_specific_CodestreamHandler - Handler of an object is type of Codestream.
+ *  return - A handler for Codestream object which is shared in this file(or this program).
+ *           #  Codestream object is able to be monitored by another thread,but in this
+ *              program,only one object is needed.
+ */
+static codestream::Codestream &program_specific_CodestreamHandler(void)
+{
+  static codestream::Codestream obj;  //  Makeup when the first time enter this function.
+  return obj;
+}
+#define g_Codestream  program_specific_CodestreamHandler()
+
+
 //  main_optionf_eandd - do some prepare works for encode or decode.
 //    @target : const char pointer,it should be the same char pointer
 //              from cmd.

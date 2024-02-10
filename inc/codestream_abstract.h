@@ -125,17 +125,16 @@ namespace codestream {
 
   };
 
-  inline
-  Codestream &getGlobalCodestreamRef(void)
+  /*  ERROR,non-member function contains a local static object with
+   *  inline linkage will cause duplication.
+   */
+  /*
+  inline Codestream &getGlobalCodestreamRef(void)
   {
-    static Codestream codestream;
-    return codestream;
+    static Codestream obj;
+    return obj;
   }
-
+  */
 }
-
-#define g_Codestream codestream::getGlobalCodestreamRef()
-
-
 
 #endif
