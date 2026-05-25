@@ -49,7 +49,7 @@ int main_optionf_eandd(const char *target)
   }
 
   //  determine where data from.
-  if (!strcmp(target, "-") && ::if_f_got)
+  if (!strncmp(target, "-", 2) && ::if_f_got)
     src_from = csds::DFSTDIN;
   else if (::if_f_got)
     src_from = csds::DFFILE;
@@ -160,7 +160,10 @@ void main_optionf_h(void)
       <<"    # dont use -e and -d at same time."<<endl
       <<"    # target could be file-name or string."<<endl
       <<"    # if provide file-name,must assign -f option."<<endl
-      <<"    # symbol - means stdin."<<endl;
+      <<"    # symbol - means stdin." << endl
+      <<"    ! for read from file or from STDIN,must follow the style" << endl
+      <<"        @program -k <key> -f [-e | -d] [- | @filename]" << endl
+      <<"                                       #^ means STDIN" << endl;
 }
 
 //  main_output_error_msg - print error messages.

@@ -7,6 +7,7 @@
 namespace ops {
   static std::unique_ptr<otm::otm_object> otm_bewrapped(nullptr);
   static std::unique_ptr<base64::base64_object> base64_bewrapped(nullptr);
+  static std::unique_ptr<bitwise_algo_ns::xor_object> xor_bewrapped(nullptr);
 
   //  otm_init - set key for otm object which was wrapped.
   //    @x : the key.
@@ -18,6 +19,12 @@ namespace ops {
     otm_bewrapped->setResortKey(x);
   }
 
+  static void xor_init(uint8_t k)
+  {
+    if (!xor_bewrapped)
+      return;
+    xor_bewrapped->setKey(k);
+  }
 }  //  ops END
 
 
@@ -53,7 +60,6 @@ namespace owa {
   }
 
 
-
 }  //  owa END 
 
 
@@ -67,6 +73,7 @@ namespace ops_wrapper {
   static unsigned short cwer = 0;
 #define CWER_OTM 0
 #define CWER_BASE64 1
+#define CWER_XOR 2
 
   static union gc_keys_ul gckul;
 
@@ -75,11 +82,12 @@ namespace ops_wrapper {
   {
     otm::otm_object *otmp = new otm::otm_object;
     base64::base64_object *base64p = new base64::base64_object;
+    bitwise_algo_ns::xor_object *xorp = new bitwise_algo_ns::xor_object;
     ops::otm_bewrapped.reset(otmp);
     ops::base64_bewrapped.reset(base64p);
+    ops::xor_bewrapped.reset(xorp);
 
     //  ... more
-
   }
 
   //  if_wrappers_exist - check if ops_wrappers existed realy.
@@ -91,6 +99,9 @@ namespace ops_wrapper {
     
     if (!ops::base64_bewrapped)
       throw BASE64_INIT_EXCEPT;
+
+    if (!ops::xor_bewrapped)
+      throw XOR_INIT_EXCEPT;
   }
 
   //  generateOPSWrapper - template for generate a ops_wrapper
@@ -151,6 +162,26 @@ namespace ops_wrapper {
     return gcs;
   }
 
+  void *ops_wrapper_xor_encode(void *gcs)
+  {
+    auto f = generateOPSWrapper(static_cast<gcstruct *>(gcs),
+                                *ops::xor_bewrapped, &bitwise_algo_ns::xor_object::xorEncode);
+    if (!f())
+      return nullptr;
+    cwer = CWER_XOR;
+    return gcs;
+  }
+
+  void *ops_wrapper_xor_decode(void *gcs)
+  {
+    auto f = generateOPSWrapper(static_cast<gcstruct *>(gcs),
+                                *ops::xor_bewrapped, &bitwise_algo_ns::xor_object::xorDecode);
+    if (!f())
+      return nullptr;
+    cwer = CWER_XOR;
+    return gcs;
+  }
+
   //  ops_wrapper_base_encode - wrapper for base64 encode.
   //    @gcs : data struct pointer point to operand.
   //    return - return @gcs if working fine,other wise,return nullptr.
@@ -195,6 +226,10 @@ namespace ops_wrapper {
       owa::ow_gcs_all_wt(s);
       break;
 
+    case CWER_XOR:
+      owa::ow_gcs_all_wt(s);
+      break;
+
     default:  //  nodefined,do nothing.
       ;
     }
@@ -220,7 +255,8 @@ namespace ops_wrapper {
 
     //  -- init procedures chain
 
-    ops::otm_init(gckul.otm_key);    
+    ops::otm_init(gckul.otm_key);
+    ops::xor_init(gckul.xor_key);
 
     //  ... more
 
@@ -234,6 +270,11 @@ namespace ops_wrapper {
   void ops_wrapper_otm_key(unsigned short x)
   {
     gckul.otm_key = x;  //  just set the union member 
+  }
+
+  void ops_wrapper_xor_key(uint8_t k)
+  {
+    gckul.xor_key = k;
   }
 
 }  //  namespace end

@@ -7,11 +7,66 @@
 
 /* Should define procedure as a structure of a class might be well */
 
-#include<cstddef>
-#include<cstring>
-#include<concepts>
-#include<string>
-#include<exception>
+#include <cstddef>
+#include <cstring>
+#include <cstdint>
+#include <concepts>
+#include <string>
+#include <exception>
+
+namespace bitwise_algo_ns {
+  /**
+   * bitwise_xor - encoding / decoding text follow the principle
+   *                 a ^ b ^ b == a
+   */
+  struct bitwise_xor {
+  public:
+    bitwise_xor()
+      : xor_key_(0)
+    { }
+
+    explicit bitwise_xor(uint8_t key)
+      : xor_key_(key)
+    { }
+
+    void setKey(uint8_t new_key)
+    {
+      xor_key_ = new_key;
+    }
+
+    uint8_t key(void) const
+    {
+      return xor_key_;
+    }
+
+    ssize_t xorEncode(const char *plaintext, std::size_t ptext_len,
+                      char *ciphertext, std::size_t ctext_buf_size) const
+    {
+      if (ctext_buf_size < ptext_len)
+        return -1;
+      for (std::size_t i(0); i < ptext_len; ++i)
+        ciphertext[i] = ((uint8_t)plaintext[i]) ^ xor_key_;
+
+      return ptext_len;
+    }
+
+    ssize_t xorDecode(const char *ciphertext, std::size_t ctext_len,
+                      char *plaintext, std::size_t ptext_buf_size) const
+    {
+      if (ptext_buf_size < ctext_len)
+        return -1;
+      for (std::size_t i(0); i < ctext_len; ++i)
+        plaintext[i] = ((uint8_t)ciphertext[i]) ^ xor_key_;
+
+      return ctext_len;
+    }
+
+  private:
+    uint8_t xor_key_;
+  };
+
+  using xor_object = struct bitwise_xor;
+};
 
 
 namespace otm {

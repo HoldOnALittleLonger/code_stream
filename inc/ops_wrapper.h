@@ -1,13 +1,16 @@
 #ifndef _OSP_WRAPPER_H_
 #define _OPS_WRAPPER_H_
 
-#include<cstddef>
+#include <cstddef>
+#include <cstdint>
 
 //  OTM_INIT_EXCEPT - occur exception while init otm 
 #define OTM_INIT_EXCEPT 1
 
 //  BASE64_INIT_EXCEPT - occur exception while init base64
 #define BASE64_INIT_EXCEPT 2
+
+#define XOR_INIT_EXCEPT 3
 
 namespace ops_wrapper {
 
@@ -25,6 +28,11 @@ namespace ops_wrapper {
     size_t length_of_buff2;
   };  //  should be 48B
   using gcstruct = struct general_coding_struct;
+
+
+  // wrappers for xor operation
+  void *ops_wrapper_xor_encode(void *gcs);
+  void *ops_wrapper_xor_decode(void *gcs);
 
   //  wrappers for otm
   void *ops_wrapper_otm_encode(void *gcs);
@@ -47,6 +55,7 @@ namespace ops_wrapper {
 
   //  gc_keys_ul - unsigned long key-values for general coding.
   union gc_keys_ul {
+    uint8_t xor_key;
     unsigned long otm_key;
     //  unsigned long base64_key;
     
@@ -54,13 +63,15 @@ namespace ops_wrapper {
   };
 
   //  must call it before using any ops-wrappers.
-  void ops_wrapper_init(void) noexcept(false);
+  extern void ops_wrapper_init(void) noexcept(false);
 
   //  set key for otm.
-  void ops_wrapper_otm_key(unsigned short);
+  extern void ops_wrapper_otm_key(unsigned short);
 
   // set key for base64.
   //  void ops_wrapper_base64_key(unsigned short);
+
+  extern void ops_wrapper_xor_key(uint8_t);
 
 
 }  //  namespace end

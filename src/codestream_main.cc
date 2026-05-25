@@ -52,32 +52,34 @@ int main(int argc, char *argv[])
     case 'k':
       ::main_error_code = ENOE;
       if (main_optionf_k(optarg) < 0) {
-	main_output_error_msg(::main_error_code);
-	return ::main_error_code * -1;
+        main_output_error_msg(::main_error_code);
+        return ::main_error_code * -1;
       }
       break;
 
     case 'e':
       if (!prevent_ef) {
-	prevent_ef = 1;
-	::toinstall[0] = ops_wrapper::ops_wrapper_otm_encode;
-	::toinstall[1] = ops_wrapper::ops_wrapper_gcwt;
-	::toinstall[2] = ops_wrapper::ops_wrapper_base64_encode;
-	cmdarg = optarg;
-	once_read = ENCODE_INPUT;
+        prevent_ef = 1;
+        //	::toinstall[0] = ops_wrapper::ops_wrapper_otm_encode;
+        ::toinstall[0] = ops_wrapper::ops_wrapper_xor_encode;
+        ::toinstall[1] = ops_wrapper::ops_wrapper_gcwt;
+        ::toinstall[2] = ops_wrapper::ops_wrapper_base64_encode;
+        cmdarg = optarg;
+        once_read = ENCODE_INPUT;
       }
       break;
 
     case 'd':
       if (!prevent_ef) {
-	prevent_ef = 1;
-	//  have to install decode function in recursive order to
-	//  encode.
-	::toinstall[0] = ops_wrapper::ops_wrapper_base64_decode;
-	::toinstall[1] = ops_wrapper::ops_wrapper_gcwt;
-	::toinstall[2] = ops_wrapper::ops_wrapper_otm_decode;
-	cmdarg = optarg;
-	once_read = DECODE_INPUT;
+        prevent_ef = 1;
+        //  have to install decode function in recursive order to
+        //  encode.
+        ::toinstall[0] = ops_wrapper::ops_wrapper_base64_decode;
+        ::toinstall[1] = ops_wrapper::ops_wrapper_gcwt;
+        //	::toinstall[2] = ops_wrapper::ops_wrapper_otm_decode;
+        ::toinstall[2] = ops_wrapper::ops_wrapper_xor_decode;
+        cmdarg = optarg;
+        once_read = DECODE_INPUT;
       }
       break;
 
@@ -91,7 +93,7 @@ int main(int argc, char *argv[])
 
     default:
       std::cerr<<"codestream_main : error : unknown option - "<<option
-	       <<std::endl;
+               <<std::endl;
       return -EOPTION;
     }
   }
@@ -100,32 +102,27 @@ int main(int argc, char *argv[])
   //  if prevent_ef == 0,that means 
   //  neither -e nor -d was given.
   if (prevent_ef) {
-  try_wrapper_init:
-    unsigned char init_counter(3);  //  hard coding counter.
     try {
       ops_wrapper::ops_wrapper_init();  //  init wrapper
     } catch (int e) {
       //  report exception.
       switch (e) {
       case OTM_INIT_EXCEPT:
-	std::cerr<<"codestream_main : exception : otm init failed."
-		 <<std::endl;
-	break;
+        std::cerr<<"codestream_main : exception : otm init failed."
+                 <<std::endl;
+        break;
 
       case BASE64_INIT_EXCEPT:
-	std::cerr<<"codestream_main : exception : base64 init failed."
-		 <<std::endl;
-	break;
+        std::cerr<<"codestream_main : exception : base64 init failed."
+                 <<std::endl;
+        break;
 
       default:
-	std::cerr<<"codestream_main : exception : unknown exception."
-		 <<std::endl;
+        std::cerr<<"codestream_main : exception : unknown exception."
+                 <<std::endl;
       }
 
-      if (init_counter-- > 0)
-	goto try_wrapper_init;
-      else
-	return -EINIT;
+      return -EINIT;
     }
 
     ::main_error_code = ENOE;
